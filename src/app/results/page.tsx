@@ -32,7 +32,7 @@ export default function ResultsPage() {
     // Fetch Sessions on Load
     useEffect(() => {
         const fetchSessions = async () => {
-            const readProvider = provider || new ethers.JsonRpcProvider("http://localhost:8545");
+            const readProvider = provider || new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
             try {
                 const contract = new ethers.Contract(
                     process.env.NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS!,
@@ -75,7 +75,7 @@ export default function ResultsPage() {
 
         const fetchResults = async () => {
             setLoading(true);
-            const readProvider = provider || new ethers.JsonRpcProvider("http://localhost:8545");
+            const readProvider = provider || new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
             try {
                 const contract = new ethers.Contract(
                     process.env.NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS!,

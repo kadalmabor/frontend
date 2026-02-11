@@ -42,7 +42,7 @@ export default function BindWallet() {
 
     const checkStatus = async () => {
         try {
-            const res = await fetch(`http://localhost:3001/api/did/status/${account}`);
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/did/status/${account}`);
             const data = await res.json();
             if (data.claimed) {
                 if (data.studentId === studentId) {
@@ -84,7 +84,7 @@ export default function BindWallet() {
                 return;
             }
 
-            const res = await fetch("http://localhost:3001/api/did/bind", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/did/bind`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -151,7 +151,7 @@ export default function BindWallet() {
                 throw new Error("Verifiable Credential JWT not found. Please bind wallet again.");
             }
 
-            const res = await fetch("http://localhost:3001/api/did/verify-and-register", {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/did/verify-and-register`, {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
@@ -181,7 +181,7 @@ export default function BindWallet() {
                     if (newToken) {
                         // Retry request with new token
                         setStatus("Retrying with refreshed token...");
-                        const retryRes = await fetch("http://localhost:3001/api/did/verify-and-register", {
+                        const retryRes = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/did/verify-and-register`, {
                             method: "POST",
                             headers: {
                                 "Content-Type": "application/json",

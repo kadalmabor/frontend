@@ -54,7 +54,7 @@ export default function AdminPage() {
 
     const fetchSessions = async () => {
         try {
-            const readProvider = provider || new ethers.JsonRpcProvider("http://localhost:8545");
+            const readProvider = provider || new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
             const contract = new ethers.Contract(
                 process.env.NEXT_PUBLIC_VOTING_CONTRACT_ADDRESS!,
                 VotingArtifact.abi,
@@ -159,7 +159,7 @@ export default function AdminPage() {
         }
         setLoading(true);
         try {
-            const res = await fetch('http://localhost:3001/api/users/create', {
+            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/users/create`, {
                 method: 'POST',
                 headers: {
                     'Content-Type': 'application/json',
