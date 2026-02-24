@@ -22,6 +22,7 @@ export default function HistoryPage() {
     const { account, provider, isConnected } = useWallet();
     const [history, setHistory] = useState<VoteRecord[]>([]);
     const [loading, setLoading] = useState(false);
+    const [loadingTx, setLoadingTx] = useState(false);
 
     const fetchHistory = async () => {
         if (!provider || !account) return;
@@ -34,48 +35,61 @@ export default function HistoryPage() {
                 signer
             );
 
-            // Fetch history from contract
+            // ── Phase 1: immediately show history from contract state ──
+            // getUserHistory is a view function — no getLogs, instant result.
             const historyRaw = await contract.getUserHistory(account);
-
-            // Fetch Voted events to get TxHash
-            // Free-tier RPCs limit eth_getLogs to 10,000 blocks per request.
-            // We paginate in chunks of 9,000 blocks to stay within that limit.
-            const filter = contract.filters.Voted(null, account, null);
-            const CHUNK_SIZE = 9000;
-            const latestBlock = await provider.getBlockNumber();
-            let allEvents: any[] = [];
-            for (let from = 0; from <= latestBlock; from += CHUNK_SIZE) {
-                const to = Math.min(from + CHUNK_SIZE - 1, latestBlock);
-                const chunk = await contract.queryFilter(filter, from, to);
-                allEvents = allEvents.concat(chunk);
-            }
-
-            // Map SessionID -> TxHash
-            const txHashMap: Record<number, string> = {};
-            allEvents.forEach((event: any) => {
-                if (event.args && event.args.sessionId) {
-                    txHashMap[Number(event.args.sessionId)] = event.transactionHash;
-                }
-            });
-
-            const loadedHistory = historyRaw.map((r: any) => ({
+            const loadedHistory: VoteRecord[] = historyRaw.map((r: any) => ({
                 sessionId: Number(r.sessionId),
                 candidateId: Number(r.candidateId),
                 timestamp: Number(r.timestamp),
                 sessionName: r.sessionName,
                 candidateName: r.candidateName,
-                txHash: txHashMap[Number(r.sessionId)]
+                txHash: undefined,
             }));
-
-            // Sort by timestamp descending
-            loadedHistory.sort((a: any, b: any) => b.timestamp - a.timestamp);
+            loadedHistory.sort((a, b) => b.timestamp - a.timestamp);
             setHistory(loadedHistory);
+            setLoading(false);
+
+            if (loadedHistory.length === 0) return;
+
+            // ── Phase 2: enrich with tx hashes in the background ──
+            // Only search from the deployment block to avoid huge ranges.
+            // Free-tier RPCs cap eth_getLogs at 10,000 blocks per request.
+            setLoadingTx(true);
+            try {
+                const CHUNK_SIZE = 9000;
+                const deployBlock = Number(
+                    process.env.NEXT_PUBLIC_CONTRACT_DEPLOY_BLOCK ?? 0
+                );
+                const latestBlock = await provider.getBlockNumber();
+                const filter = contract.filters.Voted(null, account, null);
+
+                const txHashMap: Record<number, string> = {};
+                for (let from = deployBlock; from <= latestBlock; from += CHUNK_SIZE) {
+                    const to = Math.min(from + CHUNK_SIZE - 1, latestBlock);
+                    const chunk = await contract.queryFilter(filter, from, to);
+                    chunk.forEach((event: any) => {
+                        if (event.args?.sessionId !== undefined) {
+                            txHashMap[Number(event.args.sessionId)] = event.transactionHash;
+                        }
+                    });
+                }
+
+                // Merge tx hashes into displayed history
+                setHistory(prev =>
+                    prev.map(r => ({ ...r, txHash: txHashMap[r.sessionId] ?? r.txHash }))
+                );
+            } catch (txErr) {
+                // Tx hash enrichment is best-effort — don't block the UI
+                console.warn("Could not fetch tx hashes:", txErr);
+            }
+            setLoadingTx(false);
 
         } catch (err) {
             console.error("Error fetching history:", err);
             toast.error(getRpcErrorMessage(err));
+            setLoading(false);
         }
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -96,10 +110,15 @@ export default function HistoryPage() {
     return (
         <div className="min-h-screen bg-dark-900 pt-20 px-4 pb-10">
             <div className="max-w-4xl mx-auto">
-                <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
+                <h1 className="text-2xl sm:text-3xl font-bold mb-4 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
                     Riwayat Voting Saya
                 </h1>
 
+                {loadingTx && (
+                    <p className="text-center text-xs text-gray-500 mb-4 animate-pulse">
+                        ⏳ Memuat Tx Hash di latar belakang...
+                    </p>
+                )}
                 <div className="glass-panel rounded-xl border border-white/10 overflow-hidden">
                     {loading ? (
                         <p className="text-center text-gray-400 py-10">Memuat riwayat...</p>
