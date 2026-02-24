@@ -190,28 +190,50 @@ export default function ResultsPage() {
     };
 
     return (
-        <div className="min-h-screen bg-dark-900 pt-20 px-4">
+        <div className="min-h-screen bg-dark-900 pt-20 px-4 pb-10">
             <div className="max-w-6xl mx-auto">
-                <h1 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-400">
-                    Election Results <span className="text-sm font-normal text-gray-500 ml-2">(Live Updates)</span>
+                <h1 className="text-2xl sm:text-3xl font-bold mb-6 text-center bg-clip-text text-transparent bg-gradient-to-r from-green-400 to-blue-400">
+                    Hasil Pemilihan <span className="text-sm font-normal text-gray-500 ml-1">(Live)</span>
                 </h1>
 
-                <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
-                    {/* Sidebar: Session List */}
-                    <div className="lg:col-span-1 space-y-4">
-                        <h2 className="text-xl font-semibold text-white mb-4">Select Session</h2>
-                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-2 custom-scrollbar">
+                {/* Mobile: Horizontal scroll tabs for session selection */}
+                <div className="lg:hidden mb-5">
+                    <p className="text-xs text-gray-500 uppercase tracking-wider mb-2">Pilih Sesi</p>
+                    <div className="flex gap-2 overflow-x-auto pb-2">
+                        {sessions.map((session) => (
+                            <button
+                                key={session.id}
+                                onClick={() => setSelectedSessionId(session.id)}
+                                className={`flex-shrink-0 px-4 py-2 rounded-full text-sm font-semibold transition-all whitespace-nowrap ${selectedSessionId === session.id
+                                        ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
+                                        : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
+                                    }`}
+                            >
+                                {session.name}
+                            </button>
+                        ))}
+                        {sessions.length === 0 && (
+                            <p className="text-gray-500 text-sm py-2">Belum ada sesi.</p>
+                        )}
+                    </div>
+                </div>
+
+                <div className="grid grid-cols-1 lg:grid-cols-4 gap-6">
+                    {/* Sidebar: Session List — Desktop only */}
+                    <div className="hidden lg:block lg:col-span-1 space-y-2">
+                        <h2 className="text-sm font-semibold text-gray-400 uppercase tracking-wider mb-3">Pilih Sesi</h2>
+                        <div className="space-y-2 max-h-[500px] overflow-y-auto pr-1">
                             {sessions.map((session) => (
                                 <button
                                     key={session.id}
                                     onClick={() => setSelectedSessionId(session.id)}
-                                    className={`w-full text-left p-4 rounded-xl transition-all ${selectedSessionId === session.id
+                                    className={`w-full text-left p-3 rounded-xl transition-all ${selectedSessionId === session.id
                                         ? "bg-blue-600 text-white shadow-lg shadow-blue-600/20"
                                         : "bg-white/5 text-gray-400 hover:bg-white/10 hover:text-white"
                                         }`}
                                 >
-                                    <h3 className="font-bold truncate">{session.name}</h3>
-                                    <div className="flex justify-between items-center mt-2 text-xs">
+                                    <h3 className="font-bold truncate text-sm">{session.name}</h3>
+                                    <div className="flex justify-between items-center mt-1 text-xs">
                                         <span className={getSessionStatus(session.startTime, session.endTime, session.isActive).color}>
                                             {getSessionStatus(session.startTime, session.endTime, session.isActive).text}
                                         </span>
@@ -220,7 +242,7 @@ export default function ResultsPage() {
                                 </button>
                             ))}
                             {sessions.length === 0 && (
-                                <p className="text-gray-500 text-center py-4">No sessions found.</p>
+                                <p className="text-gray-500 text-center py-4 text-sm">Belum ada sesi.</p>
                             )}
                         </div>
                     </div>
@@ -228,71 +250,87 @@ export default function ResultsPage() {
                     {/* Main Content: Results */}
                     <div className="lg:col-span-3">
                         {selectedSessionId ? (
-                            <div className="bg-white/5 rounded-2xl p-6 border border-white/10 backdrop-blur-sm">
-                                <h2 className="text-2xl font-bold text-white mb-6">
-                                    {sessions.find(s => s.id === selectedSessionId)?.name} <span className="text-gray-500 text-lg font-normal">Results</span>
-                                </h2>
+                            <div className="bg-white/5 rounded-2xl p-4 sm:p-6 border border-white/10 backdrop-blur-sm">
+                                <div className="mb-5">
+                                    <h2 className="text-lg sm:text-2xl font-bold text-white">
+                                        {sessions.find(s => s.id === selectedSessionId)?.name}
+                                    </h2>
+                                    {(() => {
+                                        const s = sessions.find(x => x.id === selectedSessionId);
+                                        if (!s) return null;
+                                        const status = getSessionStatus(s.startTime, s.endTime, s.isActive);
+                                        return <p className={`text-sm mt-0.5 ${status.color}`}>{status.text}</p>;
+                                    })()}
+                                </div>
 
                                 {loading && candidates.length === 0 ? (
-                                    <p className="text-center text-gray-400 py-10">Loading results...</p>
+                                    <p className="text-center text-gray-400 py-10">Memuat hasil...</p>
                                 ) : (
-                                    <div className="space-y-6">
+                                    <div className="space-y-4">
                                         {candidates.map((c, index) => (
-                                            <div key={c.id} className="glass-panel p-6 rounded-xl relative overflow-hidden group hover:border-blue-500/30 transition-all">
-                                                {/* Background Bar */}
+                                            <div key={c.id} className="glass-panel p-4 sm:p-5 rounded-xl relative overflow-hidden group hover:border-blue-500/30 transition-all">
+                                                {/* Background progress */}
                                                 <div
-                                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600/10 to-blue-400/10 transition-all duration-1000 ease-out"
+                                                    className="absolute top-0 left-0 h-full bg-gradient-to-r from-blue-600/10 to-blue-400/5 transition-all duration-1000 ease-out"
                                                     style={{ width: `${c.percentage}%` }}
-                                                ></div>
+                                                />
 
-                                                <div className="relative z-10 flex items-center justify-between">
-                                                    <div className="flex items-center gap-4">
-                                                        <div className={`
-                                                            w-10 h-10 rounded-full flex items-center justify-center font-bold text-lg shrink-0
-                                                            ${index === 0 ? 'bg-yellow-500/20 text-yellow-500' :
-                                                                index === 1 ? 'bg-gray-400/20 text-gray-400' :
-                                                                    index === 2 ? 'bg-orange-500/20 text-orange-500' : 'bg-white/5 text-gray-600'}
-                                                        `}>
-                                                            {index + 1}
-                                                        </div>
-
-                                                        <div className="flex items-center gap-4">
-                                                            {c.photoUrl && (
-                                                                <img
-                                                                    src={c.photoUrl}
-                                                                    alt={c.name}
-                                                                    className="w-12 h-12 rounded-full object-cover border border-white/10"
-                                                                    onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150'; }}
-                                                                />
-                                                            )}
-                                                            <div>
-                                                                <h3 className="text-xl font-bold text-white group-hover:text-blue-400 transition-colors">{c.name}</h3>
-                                                                <p className="text-sm text-gray-400">{c.voteCount} Votes</p>
-                                                            </div>
-                                                        </div>
+                                                <div className="relative z-10 flex flex-wrap items-center gap-3">
+                                                    {/* Rank */}
+                                                    <div className={`
+                                                        w-9 h-9 rounded-full flex items-center justify-center font-bold text-base shrink-0
+                                                        ${index === 0 ? 'bg-yellow-500/20 text-yellow-400' :
+                                                            index === 1 ? 'bg-gray-400/20 text-gray-300' :
+                                                                index === 2 ? 'bg-orange-500/20 text-orange-400' : 'bg-white/5 text-gray-600'}
+                                                    `}>
+                                                        {index + 1}
                                                     </div>
-                                                    <div className="text-right">
-                                                        <div className="text-3xl font-bold text-blue-400">
-                                                            {c.percentage}%
-                                                        </div>
-                                                        <div className="text-xs text-gray-500 uppercase tracking-widest mt-1">
-                                                            of Total
-                                                        </div>
+
+                                                    {/* Photo */}
+                                                    {c.photoUrl && (
+                                                        <img
+                                                            src={c.photoUrl}
+                                                            alt={c.name}
+                                                            className="w-11 h-11 rounded-full object-cover border border-white/10 shrink-0"
+                                                            onError={(e) => { (e.target as HTMLImageElement).src = 'https://via.placeholder.com/150'; }}
+                                                        />
+                                                    )}
+
+                                                    {/* Name & votes */}
+                                                    <div className="flex-1 min-w-0">
+                                                        <h3 className="text-base sm:text-lg font-bold text-white group-hover:text-blue-400 transition-colors truncate">{c.name}</h3>
+                                                        <p className="text-xs text-gray-400">{c.voteCount} suara</p>
+                                                    </div>
+
+                                                    {/* Percentage */}
+                                                    <div className="text-right shrink-0">
+                                                        <div className="text-2xl sm:text-3xl font-bold text-blue-400">{c.percentage}%</div>
+                                                        <div className="text-xs text-gray-500 uppercase tracking-widest">dari total</div>
+                                                    </div>
+                                                </div>
+
+                                                {/* Progress bar */}
+                                                <div className="relative z-10 mt-3">
+                                                    <div className="w-full bg-white/5 rounded-full h-1.5">
+                                                        <div
+                                                            className="bg-gradient-to-r from-blue-500 to-blue-400 h-1.5 rounded-full transition-all duration-1000"
+                                                            style={{ width: `${c.percentage}%` }}
+                                                        />
                                                     </div>
                                                 </div>
                                             </div>
                                         ))}
                                         {candidates.length === 0 && (
                                             <div className="text-center py-10">
-                                                <p className="text-gray-500">No candidates found for this session.</p>
+                                                <p className="text-gray-500">Belum ada kandidat di sesi ini.</p>
                                             </div>
                                         )}
                                     </div>
                                 )}
                             </div>
                         ) : (
-                            <div className="flex flex-col items-center justify-center h-full text-gray-500 bg-white/5 rounded-2xl border border-white/5 p-10">
-                                <p className="text-xl">Select a session to view results.</p>
+                            <div className="flex flex-col items-center justify-center min-h-[200px] text-gray-500 bg-white/5 rounded-2xl border border-white/5 p-8 text-center">
+                                <p className="text-lg">Pilih sesi untuk melihat hasil.</p>
                             </div>
                         )}
                     </div>

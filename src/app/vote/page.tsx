@@ -260,26 +260,28 @@ export default function VotePage() {
                     <h1 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
                         Available Voting Sessions
                     </h1>
-                    <div className="grid gap-6">
+                    <div className="grid gap-4">
                         {sessions.map((session) => (
-                            <div key={session.id} className="glass-panel p-6 rounded-xl hover:bg-white/5 transition border border-white/10">
-                                <div className="flex justify-between items-start mb-4">
-                                    <div>
-                                        <h3 className="text-xl font-bold text-white">{session.name}</h3>
-                                        <p className="text-gray-400 mt-1">{session.description}</p>
+                            <div key={session.id} className="glass-panel p-5 rounded-xl hover:bg-white/5 transition border border-white/10">
+                                <div className="flex flex-wrap justify-between items-start gap-2 mb-3">
+                                    <div className="flex-1 min-w-0">
+                                        <h3 className="text-lg sm:text-xl font-bold text-white truncate">{session.name}</h3>
+                                        <p className="text-gray-400 mt-1 text-sm">{session.description}</p>
                                     </div>
-                                    <span className={`px-3 py-1 rounded-full text-sm font-semibold ${getSessionStatus(session) === 'Active' ? 'bg-green-500/20 text-green-400' : 'bg-gray-700 text-gray-400'
+                                    <span className={`flex-shrink-0 px-3 py-1 rounded-full text-xs font-semibold ${getSessionStatus(session) === 'Active' ? 'bg-green-500/20 text-green-400' :
+                                            getSessionStatus(session) === 'Upcoming' ? 'bg-blue-500/20 text-blue-400' :
+                                                'bg-gray-700 text-gray-400'
                                         }`}>
                                         {getSessionStatus(session)}
                                     </span>
                                 </div>
-                                <div className="flex justify-between items-center text-sm text-gray-500">
-                                    <span>End: {new Date(session.endTime * 1000).toLocaleDateString()}</span>
+                                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm text-gray-500">
+                                    <span>Berakhir: {new Date(session.endTime * 1000).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
                                     <button
                                         onClick={() => setSelectedSessionId(session.id)}
-                                        className="bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg transition"
+                                        className="w-full sm:w-auto flex-shrink-0 bg-blue-600 hover:bg-blue-500 text-white px-5 py-2 rounded-lg transition text-sm font-semibold"
                                     >
-                                        View Candidates &rarr;
+                                        Lihat Kandidat →
                                     </button>
                                 </div>
                             </div>
@@ -349,9 +351,9 @@ export default function VotePage() {
                     </div>
                 )}
 
-                <div className="grid md:grid-cols-2 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                     {candidates.map((c) => (
-                        <div key={c.id} className="glass-panel p-6 rounded-xl hover:bg-white/5 transition flex flex-col items-center">
+                        <div key={c.id} className="glass-panel p-5 rounded-xl hover:bg-white/5 transition flex flex-col items-center">
                             {c.photoUrl ? (
                                 <img
                                     src={c.photoUrl}
@@ -364,23 +366,23 @@ export default function VotePage() {
                                     {c.name[0]}
                                 </div>
                             )}
-                            <h3 className="text-xl font-bold mb-2 text-white">{c.name}</h3>
+                            <h3 className="text-lg sm:text-xl font-bold mb-2 text-white text-center">{c.name}</h3>
 
-                            <div className="w-full text-left bg-dark-800/50 p-4 rounded-lg mb-4 text-sm text-gray-300">
-                                <p><span className="font-bold text-blue-400">Vision:</span> {c.vision || "No vision provided."}</p>
-                                <p className="mt-2"><span className="font-bold text-purple-400">Mission:</span> {c.mission || "No mission provided."}</p>
+                            <div className="w-full text-left bg-white/5 p-4 rounded-lg mb-4 text-sm text-gray-300 space-y-2">
+                                <p><span className="font-bold text-blue-400">Visi:</span> {c.vision || "Belum ada visi."}</p>
+                                <p><span className="font-bold text-purple-400">Misi:</span> {c.mission || "Belum ada misi."}</p>
                             </div>
 
                             <div className="mt-auto w-full">
                                 <button
                                     onClick={() => castVote(c.id)}
                                     disabled={hasVotedInSession || getSessionStatus(currentSession!) !== "Active" || loading || hasNft === false}
-                                    className={`w-full py-2 rounded-lg font-semibold transition ${hasVotedInSession || getSessionStatus(currentSession!) !== "Active" || hasNft === false
+                                    className={`w-full py-2.5 rounded-lg font-semibold transition text-sm ${hasVotedInSession || getSessionStatus(currentSession!) !== "Active" || hasNft === false
                                         ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                                         : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25"
                                         }`}
                                 >
-                                    {loading ? "Voting..." : hasNft === false ? "Bind & claim NFT dulu" : "Vote"}
+                                    {loading ? "Memilih..." : hasNft === false ? "Bind & Claim NFT dulu" : "Pilih Kandidat Ini"}
                                 </button>
                             </div>
                         </div>
