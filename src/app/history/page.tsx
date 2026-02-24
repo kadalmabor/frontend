@@ -38,12 +38,21 @@ export default function HistoryPage() {
             const historyRaw = await contract.getUserHistory(account);
 
             // Fetch Voted events to get TxHash
+            // Free-tier RPCs limit eth_getLogs to 10,000 blocks per request.
+            // We paginate in chunks of 9,000 blocks to stay within that limit.
             const filter = contract.filters.Voted(null, account, null);
-            const events = await contract.queryFilter(filter);
+            const CHUNK_SIZE = 9000;
+            const latestBlock = await provider.getBlockNumber();
+            let allEvents: any[] = [];
+            for (let from = 0; from <= latestBlock; from += CHUNK_SIZE) {
+                const to = Math.min(from + CHUNK_SIZE - 1, latestBlock);
+                const chunk = await contract.queryFilter(filter, from, to);
+                allEvents = allEvents.concat(chunk);
+            }
 
             // Map SessionID -> TxHash
             const txHashMap: Record<number, string> = {};
-            events.forEach((event: any) => {
+            allEvents.forEach((event: any) => {
                 if (event.args && event.args.sessionId) {
                     txHashMap[Number(event.args.sessionId)] = event.transactionHash;
                 }
