@@ -9,6 +9,10 @@ export default function Home() {
   useEffect(() => {
     const token = localStorage.getItem("token");
     setIsLoggedIn(!!token);
+
+    const onAuth = () => setIsLoggedIn(!!localStorage.getItem("token"));
+    window.addEventListener("auth-change", onAuth);
+    return () => window.removeEventListener("auth-change", onAuth);
   }, []);
 
   const features = [
@@ -30,7 +34,7 @@ export default function Home() {
     {
       icon: "📊",
       title: "Hasil Real-time",
-      desc: "Hasil pemilihan dapat dipantau secara live dengan update otomatis via Socket.io.",
+      desc: "Hasil pemilihan dapat dipantau secara live dengan update otomatis via Socket.IO.",
     },
     {
       icon: "🗂️",
@@ -45,10 +49,61 @@ export default function Home() {
   ];
 
   const steps = [
-    { num: "01", title: "Login", desc: "Masuk menggunakan NIM dan password yang diberikan oleh admin." },
-    { num: "02", title: "Bind Wallet", desc: "Hubungkan dompet MetaMask kamu ke akun mahasiswamu." },
-    { num: "03", title: "Klaim NFT", desc: "Admin akan memverifikasi dan menerbitkan Student NFT ke walletmu." },
-    { num: "04", title: "Vote!", desc: "Pilih kandidat favoritmu di sesi voting yang sedang aktif." },
+    {
+      num: "01",
+      icon: "🔐",
+      title: "Login",
+      desc: "Masuk menggunakan NIM dan password yang diberikan oleh admin.",
+    },
+    {
+      num: "02",
+      icon: "🔗",
+      title: "Bind Wallet",
+      desc: "Hubungkan dompet MetaMask ke akun mahasiswamu — satu wallet untuk satu Student ID.",
+    },
+    {
+      num: "03",
+      icon: "🪙",
+      title: "Klaim NFT",
+      desc: "Klaim Student NFT sebagai bukti identitas terverifikasi agar bisa ikut voting.",
+    },
+    {
+      num: "04",
+      icon: "🗳️",
+      title: "Vote!",
+      desc: "Pilih kandidat di sesi voting aktif, konfirmasi di wallet, dan suaramu tercatat selamanya.",
+    },
+  ];
+
+  const securityItems = [
+    {
+      color: "text-blue-400",
+      bg: "bg-blue-500/10 border-blue-500/20",
+      icon: "🪪",
+      title: "Identitas",
+      desc: "Binding wallet–Student ID dan penerbitan VC dilakukan melalui backend terautentikasi (JWT). Hanya pemilik kredensial sah yang dapat mengikat dompet dan menerima NFT.",
+    },
+    {
+      color: "text-purple-400",
+      bg: "bg-purple-500/10 border-purple-500/20",
+      icon: "🗳️",
+      title: "Suara",
+      desc: "Suara terhubung ke alamat wallet dan session ID di blockchain. Smart contract memastikan satu suara per pemilih per sesi — tidak bisa vote dua kali.",
+    },
+    {
+      color: "text-green-400",
+      bg: "bg-green-500/10 border-green-500/20",
+      icon: "🔒",
+      title: "Data",
+      desc: "Password di-hash dengan bcrypt. Token JWT digunakan untuk sesi. Jangan bagikan kredensial atau seed phrase wallet ke siapapun.",
+    },
+    {
+      color: "text-amber-400",
+      bg: "bg-amber-500/10 border-amber-500/20",
+      icon: "🎭",
+      title: "Soulbound NFT",
+      desc: "Student NFT bersifat Soulbound Token (SBT) — tidak bisa dipindahtangankan, sehingga identitas pemilih tidak bisa diperjualbelikan.",
+    },
   ];
 
   return (
@@ -65,7 +120,7 @@ export default function Home() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-medium">
             <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            Powered by Ethereum Blockchain &amp; Polygon ID
+            Ethereum Blockchain · Verifiable Credential · Soulbound NFT
           </div>
 
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white via-blue-100 to-blue-300">
@@ -176,13 +231,29 @@ export default function Home() {
                 {i < steps.length - 1 && (
                   <div className="hidden lg:block absolute top-6 left-[calc(50%+2rem)] right-[-calc(50%-2rem)] h-px bg-gradient-to-r from-blue-500/40 to-transparent" />
                 )}
-                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-white font-bold text-sm shadow-lg shadow-blue-500/20 mb-4 shrink-0">
-                  {step.num}
+                <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-600 to-purple-600 flex items-center justify-center text-xl shadow-lg shadow-blue-500/20 mb-4 shrink-0">
+                  {step.icon}
                 </div>
+                <p className="text-xs font-mono text-blue-500/60 mb-1">{step.num}</p>
                 <h3 className="font-bold text-white mb-1">{step.title}</h3>
                 <p className="text-gray-400 text-sm leading-relaxed">{step.desc}</p>
               </div>
             ))}
+          </div>
+
+          {/* Detail steps */}
+          <div className="mt-12 glass-panel rounded-2xl border border-white/10 p-6">
+            <h3 className="font-semibold text-blue-300 mb-4 flex items-center gap-2">
+              <span className="w-1 h-5 bg-blue-500 rounded-full" />
+              Panduan Lengkap untuk Pemilih
+            </h3>
+            <ol className="space-y-2 text-blue-100/80 text-sm sm:text-base list-decimal list-inside">
+              <li>Login dengan Student ID dan password yang diberikan admin.</li>
+              <li>Buka halaman <strong className="text-white">Bind Wallet</strong>, hubungkan MetaMask, lalu klik <strong className="text-white">Bind Wallet to Account</strong>.</li>
+              <li>Klik <strong className="text-white">Claim Student NFT</strong> untuk menerbitkan identitas terverifikasi ke walletmu.</li>
+              <li>Buka halaman <strong className="text-white">Vote</strong>, pilih sesi aktif dan kandidat, lalu konfirmasi transaksi di MetaMask.</li>
+              <li>Cek <strong className="text-white">Riwayat</strong> untuk melihat transaction hash sebagai bukti suaramu tercatat.</li>
+            </ol>
           </div>
 
           <div className="text-center mt-10">
@@ -205,8 +276,57 @@ export default function Home() {
         </div>
       </section>
 
+      {/* ─── TENTANG SISTEM ───────────────────────────── */}
+      <section className="py-20 px-4">
+        <div className="max-w-5xl mx-auto">
+          <div className="text-center mb-12">
+            <h2 className="text-2xl sm:text-4xl font-bold text-white mb-3">Tentang Sistem</h2>
+            <p className="text-gray-400 text-sm sm:text-base max-w-2xl mx-auto">
+              E-Voting berbasis DID yang menggabungkan teknologi terkini untuk mewujudkan pemilihan yang adil dan transparan.
+            </p>
+          </div>
+
+          <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <div className="glass-panel rounded-2xl border border-white/10 p-6 space-y-3 text-blue-100/80 leading-relaxed text-sm sm:text-base">
+              <h3 className="font-semibold text-white text-lg flex items-center gap-2">
+                <span className="w-1 h-5 bg-blue-500 rounded-full" />
+                Deskripsi Sistem
+              </h3>
+              <p>
+                Sistem E-Voting ini menggabungkan identitas digital (DID) dan Verifiable Credential (VC).
+                Setiap pemilih harus terdaftar (Student ID), mengikat wallet, dan menerima{" "}
+                <strong className="text-white">Student NFT Soulbound</strong> sebagai bukti identitas sebelum
+                dapat memberikan suara.
+              </p>
+              <p>
+                Suara dicatat <em>on-chain</em> di smart contract sehingga transparan dan tidak dapat diubah.
+                Pembaruan real-time via Socket.IO memastikan hasil pemilihan selalu sinkron di semua perangkat.
+              </p>
+              <p className="text-blue-300/70 text-xs font-mono pt-1">
+                Stack: Ethereum (Hardhat) · Next.js · Express · MongoDB · Socket.IO
+              </p>
+            </div>
+
+            <div className="space-y-3">
+              <h3 className="font-semibold text-white text-lg flex items-center gap-2">
+                <span className="w-1 h-5 bg-green-500 rounded-full" />
+                Privasi & Keamanan
+              </h3>
+              {securityItems.map((item) => (
+                <div key={item.title} className={`rounded-xl border p-4 ${item.bg}`}>
+                  <p className={`font-semibold mb-1 text-sm ${item.color}`}>
+                    {item.icon} {item.title}
+                  </p>
+                  <p className="text-blue-100/70 text-sm leading-relaxed">{item.desc}</p>
+                </div>
+              ))}
+            </div>
+          </div>
+        </div>
+      </section>
+
       {/* ─── FOOTER CTA ──────────────────────────────── */}
-      <section className="py-16 px-4 text-center">
+      <section className="py-16 px-4 text-center border-t border-white/5">
         <div className="max-w-2xl mx-auto space-y-4">
           <h2 className="text-2xl sm:text-3xl font-bold text-white">
             Siap berpartisipasi?
@@ -215,17 +335,26 @@ export default function Home() {
             Suaramu dicatat selamanya di blockchain — tidak bisa hilang, tidak bisa dimanipulasi.
           </p>
           <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-2">
+            {isLoggedIn ? (
+              <Link
+                href="/vote"
+                className="w-full sm:w-auto px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-lg shadow-blue-500/25 text-sm"
+              >
+                🗳️ Mulai Voting
+              </Link>
+            ) : (
+              <Link
+                href="/login"
+                className="w-full sm:w-auto px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-lg shadow-blue-500/25 text-sm"
+              >
+                🔐 Login Sekarang
+              </Link>
+            )}
             <Link
               href="/results"
               className="w-full sm:w-auto px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 text-white border border-white/10 font-semibold transition-all text-sm"
             >
               📊 Lihat Hasil Pemilihan
-            </Link>
-            <Link
-              href="/about"
-              className="w-full sm:w-auto px-6 py-3 rounded-full bg-white/5 hover:bg-white/10 text-white border border-white/10 font-semibold transition-all text-sm"
-            >
-              ℹ️ Tentang Sistem Ini
             </Link>
           </div>
         </div>

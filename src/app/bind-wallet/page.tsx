@@ -4,7 +4,7 @@ import React, { useState, useEffect } from "react";
 import { useWallet } from "../../context/WalletContext";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { getValidToken, clearAuth, isMockToken, refreshAccessToken, isTokenExpired } from "../../utils/auth";
+import { getValidToken, clearAuth, isMockToken, refreshAccessToken, isTokenExpired, authenticatedFetch } from "../../utils/auth";
 
 export default function BindWallet() {
     const { account, isConnected, connectWallet } = useWallet();
@@ -44,12 +44,12 @@ export default function BindWallet() {
 
     const checkStatus = async () => {
         try {
-            const token = getValidToken();
-            if (!token) return;
-            const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/did/status/${account}`, {
-                headers: { Authorization: `Bearer ${token}` }
-            });
+            // authenticatedFetch handles token expiry + auto-refresh automatically
+            const res = await authenticatedFetch(
+                `${process.env.NEXT_PUBLIC_API_URL}/api/did/status/${account}`
+            );
             if (res.status === 401) {
+                // Refresh juga gagal — perlu login ulang
                 clearAuth();
                 router.push("/login");
                 return;
@@ -63,7 +63,6 @@ export default function BindWallet() {
                         setNftClaimed(true);
                         setStatus("Wallet Bound and Student NFT Claimed.");
                     } else {
-                        // If bound but not claimed, backend might return VC
                         if (data.vc) {
                             setVc(data);
                             setStatus("Wallet Bound. Please claim your NFT.");
@@ -79,8 +78,17 @@ export default function BindWallet() {
                 setNftClaimed(false);
                 setVc(null);
             }
-        } catch (error) {
-            console.error(error);
+        } catch (error: any) {
+            // authenticatedFetch melempar error ketika token + refresh keduanya gagal
+            if (
+                error?.message?.includes("No valid authentication token") ||
+                error?.message?.includes("Authentication failed")
+            ) {
+                clearAuth();
+                router.push("/login");
+            } else {
+                console.error(error);
+            }
         }
     };
 

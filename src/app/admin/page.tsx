@@ -20,6 +20,56 @@ interface Session {
     isActive: boolean;
 }
 
+interface SessionStats {
+    totalNFTHolders: number;
+    uniqueVoterCount: number;
+    participationRate: string;
+    loading: boolean;
+}
+
+// ─── StatCard ────────────────────────────────────────────────────────────────
+function StatCard({ label, value, sub, icon, color = "blue", loading = false }: {
+    label: string; value: string | number; sub?: string;
+    icon: string; color?: "blue" | "green" | "amber"; loading?: boolean;
+}) {
+    const colorMap = {
+        blue: "from-blue-600/20 to-blue-500/10 border-blue-500/30",
+        green: "from-emerald-600/20 to-emerald-500/10 border-emerald-500/30",
+        amber: "from-amber-600/20 to-amber-500/10 border-amber-500/30",
+    };
+    return (
+        <div className={`bg-gradient-to-br ${colorMap[color]} border rounded-xl p-4 flex flex-col gap-1`}>
+            <div className="flex items-center gap-2 mb-1">
+                <span className="text-xl">{icon}</span>
+                <span className="text-xs text-gray-400 uppercase tracking-wider font-medium">{label}</span>
+            </div>
+            {loading ? <div className="h-8 w-16 bg-white/10 rounded animate-pulse" /> : <p className="text-3xl font-bold text-white">{value}</p>}
+            {sub && <p className="text-xs text-gray-500 mt-0.5">{sub}</p>}
+        </div>
+    );
+}
+
+// ─── ParticipationMeter ───────────────────────────────────────────────────
+
+function ParticipationMeter({ rate, loading }: { rate: number; loading: boolean }) {
+    const color = rate >= 70 ? "from-emerald-500 to-emerald-400"
+        : rate >= 40 ? "from-blue-500 to-blue-400"
+            : "from-amber-500 to-amber-400";
+    return (
+        <div className="bg-white/5 border border-white/10 rounded-xl p-4">
+            <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-semibold text-gray-300">Tingkat Partisipasi</span>
+                {loading ? <div className="h-5 w-12 bg-white/10 rounded animate-pulse" /> : <span className="text-sm font-bold text-white">{rate.toFixed(1)}%</span>}
+            </div>
+            <div className="w-full bg-white/10 rounded-full h-3 overflow-hidden">
+                <div className={`h-3 rounded-full bg-gradient-to-r ${color} transition-all duration-1000 ease-out`}
+                    style={{ width: loading ? "0%" : `${Math.min(rate, 100)}%` }} />
+            </div>
+            <p className="text-xs text-gray-500 mt-2">Rasio pemilih aktif terhadap total pemegang Student NFT</p>
+        </div>
+    );
+}
+
 export default function AdminPage() {
     const { account, provider, isConnected } = useWallet();
     const router = useRouter();
@@ -44,7 +94,14 @@ export default function AdminPage() {
     const [newUserName, setNewUserName] = useState("");
     const [newUserStudentId, setNewUserStudentId] = useState("");
     const [newUserPassword, setNewUserPassword] = useState("");
-    const [refreshKey, setRefreshKey] = useState(0); // Trigger re-fetch
+    const [refreshKey, setRefreshKey] = useState(0);
+    const [detailSessionId, setDetailSessionId] = useState<number | null>(null);
+    const [stats, setStats] = useState<SessionStats>({
+        totalNFTHolders: 0,
+        uniqueVoterCount: 0,
+        participationRate: "0",
+        loading: false,
+    });
 
     useEffect(() => {
         // Simple Role Check (Security should be done on backend/contract too)
@@ -116,12 +173,63 @@ export default function AdminPage() {
                 isActive: s.isActive,
             }));
 
-            // Sort by ID desc (newest first)
-            formattedSessions.sort((a: Session, b: Session) => b.id - a.id);
+            // Sort by ID asc (oldest first, newest at bottom)
+            formattedSessions.sort((a: Session, b: Session) => a.id - b.id);
             setSessions(formattedSessions);
         } catch (err) {
             console.error("Error fetching sessions:", err);
             toast.error(getRpcErrorMessage(err));
+        }
+    };
+
+    const fetchSessionStats = async (sessionId: number) => {
+        // Toggle: jika session yang sama diklik lagi, tutup panel
+        if (detailSessionId === sessionId) {
+            setDetailSessionId(null);
+            return;
+        }
+        setDetailSessionId(sessionId);
+        setStats(prev => ({ ...prev, loading: true }));
+
+        try {
+            const readProvider = provider || new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
+            const contract = new ethers.Contract(
+                process.env.NEXT_PUBLIC_VOTING_SYSTEM_ADDRESS!,
+                VotingArtifact.abi,
+                readProvider
+            );
+
+            let totalNFTHolders = 0;
+            try {
+                const nextId = await contract.nextTokenId();
+                totalNFTHolders = Number(nextId);
+            } catch (e) { console.warn("Could not fetch nextTokenId:", e); }
+
+            let uniqueVoterCount = 0;
+            try {
+                const CHUNK_SIZE = 9000;
+                const deployBlock = Number(process.env.NEXT_PUBLIC_CONTRACT_DEPLOY_BLOCK ?? 0);
+                const latestBlock = await readProvider.getBlockNumber();
+                // Filter hanya untuk sesi yang dipilih
+                const filter = contract.filters.Voted(sessionId, null, null);
+                const voterAddresses = new Set<string>();
+                for (let from = deployBlock; from <= latestBlock; from += CHUNK_SIZE) {
+                    const to = Math.min(from + CHUNK_SIZE - 1, latestBlock);
+                    const chunk = await contract.queryFilter(filter, from, to);
+                    chunk.forEach((event: any) => {
+                        if (event.args?.voter) voterAddresses.add(event.args.voter.toLowerCase());
+                    });
+                }
+                uniqueVoterCount = voterAddresses.size;
+            } catch (e) { console.warn("Could not fetch voter events:", e); }
+
+            const participationRate = totalNFTHolders > 0
+                ? ((uniqueVoterCount / totalNFTHolders) * 100).toFixed(1)
+                : "0.0";
+            setStats({ totalNFTHolders, uniqueVoterCount, participationRate, loading: false });
+        } catch (err) {
+            console.error("Error fetching session stats:", err);
+            setStats(prev => ({ ...prev, loading: false }));
         }
     };
 
@@ -257,6 +365,7 @@ export default function AdminPage() {
                     Admin Dashboard
                 </h1>
 
+
                 {/* Session Monitoring */}
                 <div className="glass-panel p-4 sm:p-6 rounded-xl">
                     <div className="flex justify-between items-center mb-4">
@@ -296,15 +405,26 @@ export default function AdminPage() {
                                                 <div>⏹ {formatTime(session.endTime)}</div>
                                             </td>
                                             <td className="p-3">
-                                                <button
-                                                    onClick={() => toggleSessionStatus(session.id, session.isActive)}
-                                                    className={`px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap ${session.isActive
-                                                        ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
-                                                        : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
-                                                        }`}
-                                                >
-                                                    {session.isActive ? "STOP" : "START"}
-                                                </button>
+                                                <div className="flex items-center gap-2">
+                                                    <button
+                                                        onClick={() => toggleSessionStatus(session.id, session.isActive)}
+                                                        className={`px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap ${session.isActive
+                                                            ? "bg-red-500/20 text-red-400 hover:bg-red-500/30"
+                                                            : "bg-green-500/20 text-green-400 hover:bg-green-500/30"
+                                                            }`}
+                                                    >
+                                                        {session.isActive ? "STOP" : "START"}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => fetchSessionStats(session.id)}
+                                                        className={`px-3 py-1.5 rounded text-xs font-bold transition whitespace-nowrap ${detailSessionId === session.id
+                                                            ? "bg-purple-600 text-white"
+                                                            : "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30"
+                                                            }`}
+                                                    >
+                                                        📊 Detail
+                                                    </button>
+                                                </div>
                                             </td>
                                         </tr>
                                     ))
@@ -333,19 +453,60 @@ export default function AdminPage() {
                                         <div>▶ Mulai: {formatTime(session.startTime)}</div>
                                         <div>⏹ Akhir: {formatTime(session.endTime)}</div>
                                     </div>
-                                    <button
-                                        onClick={() => toggleSessionStatus(session.id, session.isActive)}
-                                        className={`w-full py-2 rounded-lg text-xs font-bold transition ${session.isActive
-                                            ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20"
-                                            : "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/20"
-                                            }`}
-                                    >
-                                        {session.isActive ? "⏹ Hentikan Sesi" : "▶ Aktifkan Sesi"}
-                                    </button>
+                                    <div className="flex gap-2">
+                                        <button
+                                            onClick={() => toggleSessionStatus(session.id, session.isActive)}
+                                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition ${session.isActive
+                                                ? "bg-red-500/20 text-red-400 hover:bg-red-500/30 border border-red-500/20"
+                                                : "bg-green-500/20 text-green-400 hover:bg-green-500/30 border border-green-500/20"
+                                                }`}
+                                        >
+                                            {session.isActive ? "⏹ Hentikan" : "▶ Aktifkan"}
+                                        </button>
+                                        <button
+                                            onClick={() => fetchSessionStats(session.id)}
+                                            className={`flex-1 py-2 rounded-lg text-xs font-bold transition border ${detailSessionId === session.id
+                                                ? "bg-purple-600 text-white border-purple-600"
+                                                : "bg-purple-500/20 text-purple-400 hover:bg-purple-500/30 border-purple-500/20"
+                                                }`}
+                                        >
+                                            📊 Detail
+                                        </button>
+                                    </div>
                                 </div>
                             ))
                         )}
                     </div>
+
+                    {/* ── Stats Panel (muncul saat Detail diklik) ── */}
+                    {detailSessionId !== null && (
+                        <div className="mt-5 space-y-3 border-t border-white/10 pt-5">
+                            <div className="flex items-center justify-between">
+                                <p className="text-sm font-semibold text-gray-400">
+                                    Statistik Sesi #{detailSessionId}{" — "}
+                                    <span className="text-white">{sessions.find(s => s.id === detailSessionId)?.name}</span>
+                                </p>
+                                <button
+                                    onClick={() => setDetailSessionId(null)}
+                                    className="text-gray-500 hover:text-white text-sm transition"
+                                >✕ Tutup</button>
+                            </div>
+                            <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+                                <StatCard icon="🏛️" label="Pemilih Terdaftar" value={stats.totalNFTHolders}
+                                    sub="Pemegang Student NFT" color="blue" loading={stats.loading} />
+                                <StatCard icon="✅" label="Sudah Memilih" value={stats.uniqueVoterCount}
+                                    sub="Dari sesi ini" color="green" loading={stats.loading} />
+                                <div className="col-span-2 sm:col-span-1">
+                                    <StatCard icon="📊" label="Partisipasi"
+                                        value={`${stats.participationRate}%`}
+                                        sub="Voter aktif / Terdaftar"
+                                        color={Number(stats.participationRate) >= 70 ? "green" : Number(stats.participationRate) >= 40 ? "blue" : "amber"}
+                                        loading={stats.loading} />
+                                </div>
+                            </div>
+                            <ParticipationMeter rate={Number(stats.participationRate)} loading={stats.loading} />
+                        </div>
+                    )}
                 </div>
 
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-6">

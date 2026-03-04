@@ -81,8 +81,8 @@ export default function ProfilePage() {
                     </div>
                     <h1 className="text-2xl sm:text-3xl font-bold text-white mb-1">{username}</h1>
                     <span className={`px-3 py-1 rounded-full text-xs uppercase tracking-wider font-semibold mt-1 ${isAdmin
-                            ? "bg-orange-500/20 text-orange-300 border border-orange-500/20"
-                            : "bg-white/10 text-white/60 border border-white/10"
+                        ? "bg-orange-500/20 text-orange-300 border border-orange-500/20"
+                        : "bg-white/10 text-white/60 border border-white/10"
                         }`}>
                         {isAdmin ? "👑 Admin" : "🎓 Mahasiswa"}
                     </span>
@@ -134,20 +134,12 @@ export default function ProfilePage() {
                                     <span className="w-2 h-2 rounded-full bg-green-400 shrink-0" />
                                     <span className="text-green-300 text-xs font-mono break-all">{account}</span>
                                 </div>
-                                <div className="flex flex-col sm:flex-row gap-2">
-                                    <Link
-                                        href="/bind-wallet"
-                                        className="flex-1 text-center py-2 rounded-lg bg-white/5 hover:bg-white/10 text-white transition text-sm border border-white/10"
-                                    >
-                                        Kelola Binding Wallet →
-                                    </Link>
-                                    <button
-                                        onClick={disconnectWallet}
-                                        className="flex-1 py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition text-sm border border-red-500/20"
-                                    >
-                                        Putuskan Wallet
-                                    </button>
-                                </div>
+                                <button
+                                    onClick={disconnectWallet}
+                                    className="w-full py-2 rounded-lg bg-red-500/10 hover:bg-red-500/20 text-red-400 transition text-sm border border-red-500/20"
+                                >
+                                    Putuskan Wallet
+                                </button>
                             </>
                         ) : (
                             <div className="space-y-3">

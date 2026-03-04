@@ -29,7 +29,7 @@ const Navbar = () => {
 
     const navLinks = [
         { href: "/", label: "Home" },
-        { href: "/about", label: "About" },
+        // { href: "/about", label: "About" },
         ...(isAdmin ? [{ href: "/admin", label: "Admin Dashboard", className: "text-purple-300 hover:text-purple-400" }] : []),
         { href: "/bind-wallet", label: "Bind Wallet" },
         { href: "/vote", label: "Vote" },
