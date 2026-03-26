@@ -1,36 +1,53 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# E-Voting Frontend
 
-## Getting Started
+Sistem *front-end* untuk aplikasi E-Voting Decentralized. Dibangun menggunakan Next.js (dengan App Router terbaru), Tailwind CSS untuk penataan tata letak, dan `ethers.js` untuk komunikasi dengan blockchain.
 
-First, run the development server:
+## Fitur Utama
 
-```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+-   **Antarmuka Mahasiswa (Voter)**: Login menggunakan NIM, halaman untuk menghubungkan dompet Web3 MetaMask (Bind Wallet), klaim Token NFT (dengan *display* *Transaction Hash* instan), dan halaman pemungutan suara on-chain.
+-   **Dashboard Administrator**: Antarmuka tabbed multifungsi (Overview, Sessions, Candidates, Allowlist, dan Users) untuk meracik sesi pemilihan dan mendaftarkan pemilih (termasuk fitur *Bulk Upload* via file CSV/XLSX).
+-   **Profil Pemilih (`/profile`)**: Halaman khusus pengguna mencakup identitas NIM, status koneksi dompet, indikator verifikasi identitas (NFT), dan *quick actions*.
+-   **Real-time Live Count**: Integrasi *Socket.IO Client* untuk langsung menangkap dan menampilkan event pemungutan suara (`vote_update`) dari blockchain tanpa harus me-*refresh*.
+
+## Prasyarat
+
+-   [Node.js](https://nodejs.org/) v18 atau versi lebih baru (v20 disarankan).
+-   Browser yang dilengkapi dengan ekstensi **MetaMask**.
+
+## Setup Lingkungan (Environment)
+
+Buatlah file `.env` di dalam folder root `frontend/` (Anda dapat menyalin contoh dari `.env.example` jika tersedia). Nilai kuncinya memuat setidaknya referensi ke *smart contract* dan URL eksternal:
+
+```env
+NEXT_PUBLIC_API_URL=http://localhost:3001
+NEXT_PUBLIC_VOTING_SYSTEM_ADDRESS=<Alamat Kontrak>
+NEXT_PUBLIC_RPC_URL=http://127.0.0.1:8545
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+## Memulai Server
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+1.  Instal seluruh dependensi:
+    ```bash
+    npm install
+    # atau yarn install / pnpm install
+    ```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+2.  Jalankan server *development*:
+    ```bash
+    npm run dev
+    # atau yarn dev / pnpm dev
+    ```
 
-## Learn More
+3.  Buka [http://localhost:3000](http://localhost:3000) dengan peramban Anda. Aplikasi ini dirancang bersifat adaptif *responsive*.
 
-To learn more about Next.js, take a look at the following resources:
+## Struktur Routing
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
-
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
-
-## Deploy on Vercel
-
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
-
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Memanfaatkan *Next.js App Router*, strukturnya adalah sebagai berikut:
+-   `/` : Halaman utama (yang telah digabung dengan informasi About).
+-   `/login` : Halaman Autentikasi.
+-   `/bind-wallet` : Portal verifikasi identitas digital mandiri.
+-   `/vote` : Portal aktif Pemungutan Suara untuk sesi yang terbuka.
+-   `/results` : Tabulasi hasil (Grafik Recharts).
+-   `/history` : Riwayat On-chain yang dipartisi untuk *public RPC limits*.
+-   `/profile` : Portal manajemen akun individu.
+-   `/admin` : Area khusus penyelenggara (membutuhkan peran Admin JWT).
