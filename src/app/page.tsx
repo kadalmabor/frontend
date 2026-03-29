@@ -58,7 +58,7 @@ export default function Home() {
     {
       num: "02",
       icon: "🔗",
-      title: "Bind Wallet",
+      title: "Tautkan Wallet",
       desc: "Hubungkan dompet MetaMask ke akun mahasiswamu — satu wallet untuk satu Student ID.",
     },
     {
@@ -70,7 +70,7 @@ export default function Home() {
     {
       num: "04",
       icon: "🗳️",
-      title: "Vote!",
+      title: "Voting",
       desc: "Pilih kandidat di sesi voting aktif, konfirmasi di wallet, dan suaramu tercatat selamanya.",
     },
   ];
@@ -120,7 +120,7 @@ export default function Home() {
           {/* Badge */}
           <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-blue-500/10 border border-blue-500/20 text-blue-300 text-sm font-medium">
             <span className="w-2 h-2 rounded-full bg-blue-400 animate-pulse" />
-            Ethereum Blockchain · Verifiable Credential · Soulbound NFT
+            Blockchain Ethereum · Verifiable Credential · Soulbound NFT
           </div>
 
           <h1 className="text-4xl sm:text-6xl md:text-7xl font-bold tracking-tight bg-clip-text text-transparent bg-gradient-to-br from-white via-blue-100 to-blue-300">
@@ -248,11 +248,11 @@ export default function Home() {
               Panduan Lengkap untuk Pemilih
             </h3>
             <ol className="space-y-2 text-blue-100/80 text-sm sm:text-base list-decimal list-inside">
-              <li>Login dengan Student ID dan password yang diberikan admin.</li>
-              <li>Buka halaman <strong className="text-white">Bind Wallet</strong>, hubungkan MetaMask, lalu klik <strong className="text-white">Bind Wallet to Account</strong>.</li>
-              <li>Klik <strong className="text-white">Claim Student NFT</strong> untuk menerbitkan identitas terverifikasi ke walletmu.</li>
-              <li>Buka halaman <strong className="text-white">Vote</strong>, pilih sesi aktif dan kandidat, lalu konfirmasi transaksi di MetaMask.</li>
-              <li>Cek <strong className="text-white">Riwayat</strong> untuk melihat transaction hash sebagai bukti suaramu tercatat.</li>
+              <li>Login dengan NIM dan kata sandi yang diberikan admin.</li>
+              <li>Buka halaman <strong className="text-white">Tautkan Wallet</strong>, hubungkan MetaMask, lalu klik <strong className="text-white">Tautkan Wallet ke Akun</strong>.</li>
+              <li>Klik <strong className="text-white">Klaim Student NFT</strong> untuk menerbitkan identitas terverifikasi ke wallet Anda.</li>
+              <li>Buka halaman <strong className="text-white">Voting</strong>, pilih sesi aktif dan kandidat, lalu konfirmasi transaksi di MetaMask.</li>
+              <li>Cek <strong className="text-white">Riwayat</strong> untuk melihat hash transaksi sebagai bukti suara Anda tercatat.</li>
             </ol>
           </div>
 
@@ -262,7 +262,7 @@ export default function Home() {
                 href="/bind-wallet"
                 className="inline-flex items-center gap-2 px-6 py-3 rounded-full bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-lg shadow-blue-500/25"
               >
-                Lanjutkan ke Bind Wallet →
+                Lanjutkan ke Tautkan Wallet →
               </Link>
             ) : (
               <Link

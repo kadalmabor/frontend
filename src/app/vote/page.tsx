@@ -157,14 +157,14 @@ export default function VotePage() {
         const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001");
 
         socket.on("connect", () => {
-            console.log("🟢 Connected to Real-time Vote Updates");
+            console.log("🟢 Terhubung ke pembaruan voting real-time");
         });
 
         // Listen for new votes (check if WE voted from another device/tab)
         socket.on("vote_update", (data: any) => {
             // If current user is the voter, update local state
             if (account && data.voter.toLowerCase() === account.toLowerCase()) {
-                console.log("User voted from another source, updating UI...");
+                console.log("Voting terdeteksi dari sumber lain, memperbarui tampilan...");
                 if (Number(data.sessionId) === selectedSessionId) {
                     setHasVotedInSession(true);
                 }
@@ -173,7 +173,7 @@ export default function VotePage() {
 
         // Listen for session status changes
         socket.on("session_update", (data: any) => {
-            console.log("🔄 Session status changed, refreshing...");
+            console.log("🔄 Status sesi berubah, menyegarkan...");
             setRefreshKey(prev => prev + 1);
             // If we are viewing this session, force update visual state immediately if needed
             // But fetchSessionDetails triggered by refreshKey will handle it cleanly
@@ -181,7 +181,7 @@ export default function VotePage() {
 
         // Listen for new candidates
         socket.on("candidate_added", (data: any) => {
-            console.log("🆕 New candidate added, refreshing...");
+            console.log("🆕 Kandidat baru ditambahkan, menyegarkan...");
             // If looking at the session where candidate was added, refresh
             if (Number(data.sessionId) === selectedSessionId) {
                 // Beri jeda 2 detik agar Node RPC (seperti Sepolia/Amoy) tersinkronisasi
@@ -194,7 +194,7 @@ export default function VotePage() {
 
         // Listen for new sessions
         socket.on("session_created", () => {
-            console.log("🆕 New session created, refreshing list...");
+            console.log("🆕 Sesi baru dibuat, menyegarkan daftar...");
             setRefreshKey(prev => prev + 1);
         });
 
@@ -205,7 +205,7 @@ export default function VotePage() {
     }, [account, selectedSessionId]);
 
     const getEligibilityMessage = () =>
-        "Anda belum bisa memilih. Silakan bind wallet dan claim Student NFT terlebih dahulu di halaman Bind Wallet.";
+        "Anda belum bisa memilih. Silakan tautkan wallet dan klaim Student NFT terlebih dahulu di halaman Tautkan Wallet.";
 
     const castVote = async (candidateId: number) => {
         if (!provider || !account || !selectedSessionId) return;
@@ -281,7 +281,7 @@ export default function VotePage() {
         return "Active";
     };
 
-    if (!isConnected) return <div className="text-center pt-20">Please Connect Wallet</div>;
+    if (!isConnected) return <div className="text-center pt-20">Silakan hubungkan wallet</div>;
 
     // View: Session List
     if (selectedSessionId === null) {
@@ -289,7 +289,7 @@ export default function VotePage() {
             <div className="min-h-screen bg-dark-900 pt-20 px-4">
                 <div className="max-w-4xl mx-auto">
                     <h1 className="text-3xl font-bold mb-8 text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                        Available Voting Sessions
+                        Sesi Voting Tersedia
                     </h1>
                     <div className="grid gap-4">
                         {sessions.map((session) => (
@@ -303,7 +303,13 @@ export default function VotePage() {
                                         getSessionStatus(session) === 'Upcoming' ? 'bg-blue-500/20 text-blue-400' :
                                             'bg-gray-700 text-gray-400'
                                         }`}>
-                                        {getSessionStatus(session)}
+                                        {getSessionStatus(session) === "Active"
+                                            ? "Aktif"
+                                            : getSessionStatus(session) === "Upcoming"
+                                                ? "Akan Datang"
+                                                : getSessionStatus(session) === "Ended"
+                                                    ? "Berakhir"
+                                                    : "Ditutup"}
                                     </span>
                                 </div>
                                 <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-3 text-sm text-gray-500">
@@ -318,7 +324,7 @@ export default function VotePage() {
                             </div>
                         ))}
                         {sessions.length === 0 && (
-                            <p className="text-center text-gray-500">No sessions available.</p>
+                            <p className="text-center text-gray-500">Belum ada sesi yang tersedia.</p>
                         )}
                     </div>
                 </div>
@@ -340,7 +346,7 @@ export default function VotePage() {
                     }}
                     className="mb-6 text-gray-400 hover:text-white transition flex items-center gap-2"
                 >
-                    &larr; Back to Sessions
+                    &larr; Kembali ke Daftar Sesi
                 </button>
 
                 <h1 className="text-3xl font-bold mb-2 text-center text-white">
@@ -351,9 +357,9 @@ export default function VotePage() {
                 {hasNft === false && (
                     <div className="text-center p-6 bg-amber-500/10 border border-amber-500/50 rounded-xl mb-8">
                         <p className="text-amber-300 font-semibold mb-2">Anda belum bisa memilih.</p>
-                        <p className="text-gray-400 text-sm mb-4">Silakan bind wallet dan claim Student NFT terlebih dahulu.</p>
+                        <p className="text-gray-400 text-sm mb-4">Silakan tautkan wallet dan klaim Student NFT terlebih dahulu.</p>
                         <Link href="/bind-wallet" className="inline-flex items-center gap-2 bg-amber-600 hover:bg-amber-500 text-white px-6 py-2 rounded-lg font-semibold transition">
-                            Ke halaman Bind Wallet →
+                            Ke halaman Tautkan Wallet →
                         </Link>
                     </div>
                 )}
@@ -369,21 +375,21 @@ export default function VotePage() {
 
                 {txHash && (
                     <div className="text-center p-6 bg-blue-500/10 border border-blue-500/50 rounded-xl mb-8 animate-fade-in">
-                        <p className="text-blue-300 font-bold text-xl mb-2">Vote Submitted!</p>
+                        <p className="text-blue-300 font-bold text-xl mb-2">Voting berhasil dikirim!</p>
                         <a
                             href={getExplorerLink(txHash)}
                             target="_blank"
                             rel="noopener noreferrer"
                             className="inline-flex items-center gap-2 bg-blue-600 hover:bg-blue-500 text-white px-6 py-2 rounded-lg font-semibold transition"
                         >
-                            View on Block Explorer
+                            Lihat di Block Explorer
                         </a>
                     </div>
                 )}
 
                 {hasVotedInSession ? (
                     <div className="text-center p-6 bg-green-500/10 border border-green-500/50 rounded-xl mb-8">
-                        <p className="text-green-300 font-bold text-xl">You have already voted in this session! 🎉</p>
+                        <p className="text-green-300 font-bold text-xl">Anda sudah voting pada sesi ini!</p>
                     </div>
                 ) : isEligibleForSession === false ? (
                     <div className="text-center p-6 bg-rose-500/10 border border-rose-500/50 rounded-xl mb-8">
@@ -391,11 +397,19 @@ export default function VotePage() {
                     </div>
                 ) : getSessionStatus(currentSession!) !== 'Active' ? (
                     <div className="text-center p-6 bg-yellow-500/10 border border-yellow-500/50 rounded-xl mb-8">
-                        <p className="text-yellow-300 font-bold">Session is {getSessionStatus(currentSession!)}</p>
+                        <p className="text-yellow-300 font-bold">
+                            Status sesi: {getSessionStatus(currentSession!) === "Active"
+                                ? "Aktif"
+                                : getSessionStatus(currentSession!) === "Upcoming"
+                                    ? "Akan Datang"
+                                    : getSessionStatus(currentSession!) === "Ended"
+                                        ? "Berakhir"
+                                        : "Ditutup"}
+                        </p>
                     </div>
                 ) : (
                     <div className="text-center p-6 bg-blue-500/10 border border-blue-500/50 rounded-xl mb-8">
-                        <p className="text-blue-300 font-semibold">Select a candidate to cast your vote.</p>
+                        <p className="text-blue-300 font-semibold">Pilih kandidat untuk memberikan suara.</p>
                     </div>
                 )}
 
@@ -433,7 +447,7 @@ export default function VotePage() {
                                     {loading
                                         ? "Memilih..."
                                         : hasNft === false
-                                            ? "Bind & Claim NFT dulu"
+                                            ? "Tautkan & Klaim NFT dulu"
                                             : isEligibleForSession === false
                                                 ? "Tidak Terdaftar di Sesi Ini"
                                                 : "Pilih Kandidat Ini"}

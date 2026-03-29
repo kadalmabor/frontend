@@ -41,7 +41,10 @@ export default function LoginPage() {
                     router.push("/vote");
                 }
             } else {
-                const errorMessage = data.error || (data.details && data.details.map((d: any) => d.msg).join(', ')) || "Login failed";
+                const errorMessage =
+                    data.error ||
+                    (data.details && data.details.map((d: any) => d.msg).join(", ")) ||
+                    "Login gagal";
                 toast.error(errorMessage);
             }
         } catch (err: any) {
@@ -49,7 +52,7 @@ export default function LoginPage() {
             if (err instanceof TypeError) {
                 toast.error(`Tidak bisa terhubung ke server (${apiBaseUrl}). Pastikan backend aktif.`);
             } else {
-                toast.error(err?.message || "Login Error");
+                toast.error(err?.message || "Terjadi kesalahan saat login");
             }
         } finally {
             setLoading(false);
@@ -68,7 +71,7 @@ export default function LoginPage() {
                 <form onSubmit={handleLogin} className="flex flex-col gap-4 w-full bg-white/5 p-6 rounded-2xl backdrop-blur-sm border border-white/10">
                     <input
                         type="text"
-                        placeholder="Username / Student ID"
+                        placeholder="Username / NIM"
                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                         value={username}
                         onChange={(e) => setUsername(e.target.value)}
@@ -76,7 +79,7 @@ export default function LoginPage() {
                     />
                     <input
                         type="password"
-                        placeholder="Password"
+                        placeholder="Kata sandi"
                         className="w-full px-4 py-3 rounded-xl bg-white/5 border border-white/10 text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
@@ -87,13 +90,13 @@ export default function LoginPage() {
                         disabled={loading}
                         className="w-full px-8 py-3 rounded-xl bg-blue-600 hover:bg-blue-500 text-white font-semibold transition-all shadow-lg shadow-blue-500/25 hover:shadow-blue-500/40 disabled:opacity-50 disabled:cursor-not-allowed"
                     >
-                        {loading ? "Logging in..." : "Login"}
+                        {loading ? "Sedang masuk..." : "Login"}
                     </button>
                 </form>
 
                 <p className="text-white/60">
                     <Link href="/" className="hover:text-white transition-colors">
-                        &larr; Back to Home
+                        &larr; Kembali ke Beranda
                     </Link>
                 </p>
             </div>

@@ -105,7 +105,7 @@ export default function HistoryPage() {
         return () => document.removeEventListener("visibilitychange", onVisible);
     }, [isConnected, provider, account]);
 
-    if (!isConnected) return <div className="text-center pt-20">Please Connect Wallet</div>;
+    if (!isConnected) return <div className="text-center pt-20">Silakan hubungkan wallet</div>;
 
     return (
         <div className="min-h-screen bg-dark-900 pt-20 px-4 pb-10">

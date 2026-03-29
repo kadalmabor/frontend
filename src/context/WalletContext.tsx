@@ -1,6 +1,6 @@
 "use client";
 
-import React, { createContext, useContext, useState, useEffect, ReactNode } from "react";
+import React, { createContext, useContext, useState, useEffect, ReactNode, useCallback } from "react";
 import { ethers, BrowserProvider } from "ethers";
 import toast from "react-hot-toast";
 import { getRpcErrorMessage } from "../utils/rpcError";
@@ -30,23 +30,14 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
     const targetChainHex = `0x${targetChainId.toString(16)}`;
     const targetChainName = process.env.NEXT_PUBLIC_CHAIN_NAME || (targetChainId === 31337n ? "Hardhat Localhost" : "Custom Network");
     const targetRpcUrl = process.env.NEXT_PUBLIC_RPC_URL || "http://127.0.0.1:8545/";
+    const targetBlockExplorerUrl = process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL;
 
-    useEffect(() => {
-        // Check if window.ethereum is available
-        if (typeof window !== "undefined" && (window as any).ethereum) {
-            const provider = new ethers.BrowserProvider((window as any).ethereum);
-            setProvider(provider);
+    const getInjectedProvider = () => {
+        if (typeof window === "undefined") return null;
+        return (window as any).ethereum;
+    };
 
-            // Check if already connected
-            provider.listAccounts().then((accounts) => {
-                if (accounts.length > 0) {
-                    setAccount(accounts[0].address);
-                }
-            });
-        }
-    }, []);
-
-    const checkNetwork = async (provider: BrowserProvider) => {
+    const checkNetwork = useCallback(async (provider: BrowserProvider) => {
         const network = await provider.getNetwork();
         if (network.chainId !== targetChainId) {
             try {
@@ -64,30 +55,87 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                                     symbol: "ETH",
                                     decimals: 18,
                                 },
+                                ...(targetBlockExplorerUrl ? { blockExplorerUrls: [targetBlockExplorerUrl] } : {}),
                             },
                         ]);
+                        await provider.send("wallet_switchEthereumChain", [{ chainId: targetChainHex }]);
                     } catch (addError) {
                         console.error(addError);
                         toast.error(getRpcErrorMessage(addError));
+                        throw addError;
                     }
                 } else {
                     toast.error(getRpcErrorMessage(switchError));
+                    throw switchError;
                 }
             }
         }
-    };
+    }, [targetBlockExplorerUrl, targetChainHex, targetChainId, targetChainName, targetRpcUrl]);
+
+    useEffect(() => {
+        const injectedProvider = getInjectedProvider();
+        if (!injectedProvider) return;
+
+        const browserProvider = new ethers.BrowserProvider(injectedProvider);
+        setProvider(browserProvider);
+
+        const syncWalletState = async () => {
+            try {
+                const accounts = await browserProvider.listAccounts();
+                if (accounts.length > 0) {
+                    await checkNetwork(browserProvider);
+                    setAccount(accounts[0].address);
+                    return;
+                }
+                setAccount(null);
+            } catch (error) {
+                console.error("Gagal menyinkronkan wallet", error);
+            }
+        };
+
+        const handleAccountsChanged = (accounts: string[]) => {
+            setAccount(accounts[0] || null);
+        };
+
+        const handleChainChanged = async () => {
+            const nextProvider = new ethers.BrowserProvider(injectedProvider);
+            setProvider(nextProvider);
+
+            try {
+                const accounts = await nextProvider.send("eth_accounts", []);
+                if (accounts.length > 0) {
+                    await checkNetwork(nextProvider);
+                    setAccount(accounts[0]);
+                } else {
+                    setAccount(null);
+                }
+            } catch (error) {
+                console.error("Gagal memperbarui chain wallet", error);
+            }
+        };
+
+        syncWalletState();
+        injectedProvider.on?.("accountsChanged", handleAccountsChanged);
+        injectedProvider.on?.("chainChanged", handleChainChanged);
+
+        return () => {
+            injectedProvider.removeListener?.("accountsChanged", handleAccountsChanged);
+            injectedProvider.removeListener?.("chainChanged", handleChainChanged);
+        };
+    }, [checkNetwork]);
 
     const connectWallet = async () => {
-        if (!provider) {
-            toast.error("Please install MetaMask!");
+        const injectedProvider = getInjectedProvider();
+        if (!provider || !injectedProvider) {
+            toast.error("Silakan pasang MetaMask terlebih dahulu");
             return;
         }
         try {
-            await checkNetwork(provider);
             const accounts = await provider.send("eth_requestAccounts", []);
+            await checkNetwork(provider);
             setAccount(accounts[0]);
         } catch (error) {
-            console.error("Connection rejected", error);
+            console.error("Koneksi ditolak", error);
             toast.error(getRpcErrorMessage(error));
         }
     };

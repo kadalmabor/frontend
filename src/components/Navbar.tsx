@@ -28,13 +28,13 @@ const Navbar = () => {
     const closeMobileMenu = () => setIsMobileMenuOpen(false);
 
     const navLinks = [
-        { href: "/", label: "Home" },
+        { href: "/", label: "Beranda" },
         // { href: "/about", label: "About" },
-        ...(isAdmin ? [{ href: "/admin", label: "Admin Dashboard", className: "text-purple-300 hover:text-purple-400" }] : []),
-        { href: "/bind-wallet", label: "Bind Wallet" },
-        { href: "/vote", label: "Vote" },
-        { href: "/history", label: "History" },
-        { href: "/results", label: "Results" },
+        ...(isAdmin ? [{ href: "/admin", label: "Dasbor Admin", className: "text-purple-300 hover:text-purple-400" }] : []),
+        { href: "/bind-wallet", label: "Tautkan Wallet" },
+        { href: "/vote", label: "Voting" },
+        { href: "/history", label: "Riwayat" },
+        { href: "/results", label: "Hasil" },
     ];
 
     return (
@@ -74,7 +74,7 @@ const Navbar = () => {
                                         : "bg-blue-600/20 text-blue-300 hover:bg-blue-600/30"
                                         }`}
                                 >
-                                    {isConnected ? `${account?.slice(0, 6)}...${account?.slice(-4)}` : "Connect Wallet"}
+                                    {isConnected ? `${account?.slice(0, 6)}...${account?.slice(-4)}` : "Hubungkan Wallet"}
                                 </button>
                                 <Link
                                     href="/profile"
@@ -104,7 +104,7 @@ const Navbar = () => {
                         <button
                             onClick={() => setIsMobileMenuOpen((prev) => !prev)}
                             className="p-2 rounded-md text-gray-300 hover:text-white hover:bg-white/10 transition-all focus:outline-none"
-                            aria-label="Toggle menu"
+                            aria-label="Buka/tutup menu"
                         >
                             {isMobileMenuOpen ? (
                                 // X icon
@@ -149,7 +149,7 @@ const Navbar = () => {
                                 >
                                     {isConnected
                                         ? `✓ ${account?.slice(0, 8)}...${account?.slice(-6)}`
-                                        : "🔗 Connect Wallet"
+                                        : "🔗 Hubungkan Wallet"
                                     }
                                 </button>
                             ) : (

@@ -47,14 +47,14 @@ export const getValidToken = (): string | null => {
 
     // Check if it's an old mock token
     if (isMockToken(token)) {
-        console.warn('Old mock token detected. Please login again.');
+        console.warn('Token mock lama terdeteksi. Silakan login kembali.');
         clearAuth();
         return null;
     }
 
     // Check if it's a valid JWT format
     if (!isValidJWT(token)) {
-        console.warn('Invalid token format. Please login again.');
+        console.warn('Format token tidak valid. Silakan login kembali.');
         clearAuth();
         return null;
     }
@@ -82,7 +82,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
         });
 
         if (!res.ok) {
-            throw new Error('Failed to refresh token');
+            throw new Error("Gagal memperbarui token");
         }
 
         const data = await res.json();
@@ -94,7 +94,7 @@ export const refreshAccessToken = async (): Promise<string | null> => {
 
         return null;
     } catch (error) {
-        console.error('Token refresh failed:', error);
+        console.error('Gagal memperbarui token:', error);
         clearAuth();
         return null;
     }
@@ -147,7 +147,7 @@ export const authenticatedFetch = async (
 
     // If still no token, throw error
     if (!token) {
-        throw new Error('No valid authentication token. Please login again.');
+        throw new Error('Tidak ada token autentikasi yang valid. Silakan login kembali.');
     }
 
     // Add Authorization header
@@ -171,7 +171,7 @@ export const authenticatedFetch = async (
             });
         } else {
             clearAuth();
-            throw new Error('Authentication failed. Please login again.');
+            throw new Error('Autentikasi gagal. Silakan login kembali.');
         }
     }
 

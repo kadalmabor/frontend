@@ -187,18 +187,18 @@ export default function AdminPage() {
         const socket = io(process.env.NEXT_PUBLIC_API_URL || "http://localhost:3001");
 
         socket.on("connect", () => {
-            console.log("🟢 Admin Connected to Real-time Updates");
+            console.log("🟢 Admin terhubung ke pembaruan real-time");
         });
 
         // Listen for new sessions
         socket.on("session_created", () => {
-            console.log("🆕 New session created, refreshing admin list...");
+            console.log("🆕 Sesi baru dibuat, menyegarkan daftar admin...");
             setRefreshKey(prev => prev + 1);
         });
 
         // Listen for session status changes
         socket.on("session_update", () => {
-            console.log("🔄 Session status updated, refreshing admin list...");
+            console.log("🔄 Status sesi diperbarui, menyegarkan daftar admin...");
             setRefreshKey(prev => prev + 1);
         });
 
@@ -346,7 +346,7 @@ export default function AdminPage() {
             formattedSessions.sort((a: Session, b: Session) => a.id - b.id);
             setSessions(formattedSessions);
         } catch (err) {
-            console.error("Error fetching sessions:", err);
+            console.error("Kesalahan saat memuat sesi:", err);
             toast.error(getRpcErrorMessage(err));
         }
     };
@@ -360,7 +360,7 @@ export default function AdminPage() {
             setAllowlistAddresses(normalized);
             setDraftAllowlist(normalized.map((addr: string) => ({ value: addr, label: formatShortAddress(addr) }))); // Auto-fill the draft
         } catch (err) {
-            console.error("Error fetching session allowlist:", err);
+            console.error("Kesalahan saat memuat daftar pemilih sesi:", err);
             setAllowlistAddresses([]);
             setDraftAllowlist([]);
         }
@@ -445,7 +445,7 @@ export default function AdminPage() {
                 : "0.0";
             setStats({ totalNFTHolders, uniqueVoterCount, participationRate, registeredLabel, loading: false });
         } catch (err) {
-            console.error("Error fetching session stats:", err);
+            console.error("Kesalahan saat memuat statistik sesi:", err);
             setStats(prev => ({ ...prev, loading: false }));
         }
     };
@@ -649,13 +649,13 @@ export default function AdminPage() {
 
     const allowlistEntryCount = draftAllowlist.length;
 
-    if (!isConnected) return <div className="text-center pt-20">Please Connect Admin Wallet</div>;
+    if (!isConnected) return <div className="text-center pt-20">Silakan hubungkan wallet admin</div>;
 
     return (
         <div className="min-h-screen bg-dark-900 pt-20 px-4 pb-20">
             <div className="max-w-6xl mx-auto space-y-8">
                 <h1 className="text-2xl sm:text-3xl font-bold text-center bg-clip-text text-transparent bg-gradient-to-r from-blue-400 to-purple-400">
-                    Admin Dashboard
+                    Dasbor Admin
                 </h1>
 
                 {/* Tabs Navigation */}

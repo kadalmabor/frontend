@@ -330,7 +330,7 @@ export default function ResultsPage() {
         });
 
         socket.on("session_created", () => {
-            console.log("🚀 New session created, refreshing sessions list...");
+            console.log("🚀 Sesi baru dibuat, menyegarkan daftar sesi...");
             setRefreshKey((prev) => prev + 1);
         });
 

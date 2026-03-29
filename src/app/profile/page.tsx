@@ -127,7 +127,7 @@ export default function ProfilePage() {
         { href: "/vote", label: "🗳️ Halaman Voting", color: "bg-blue-600/20 hover:bg-blue-600/30 text-blue-200" },
         { href: "/results", label: "📊 Lihat Hasil", color: "bg-purple-600/20 hover:bg-purple-600/30 text-purple-200" },
         { href: "/history", label: "📜 Riwayat Voting", color: "bg-green-600/20 hover:bg-green-600/30 text-green-200" },
-        ...(isAdmin ? [{ href: "/admin", label: "⚙️ Admin Dashboard", color: "bg-orange-600/20 hover:bg-orange-600/30 text-orange-200" }] : []),
+        ...(isAdmin ? [{ href: "/admin", label: "⚙️ Dasbor Admin", color: "bg-orange-600/20 hover:bg-orange-600/30 text-orange-200" }] : []),
     ];
 
     return (
