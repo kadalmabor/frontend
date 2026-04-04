@@ -16,3 +16,25 @@ export const formatTime = (timestamp: number) =>
         hour: "2-digit",
         minute: "2-digit",
     });
+
+export const getAdminSessionStatus = (session: { isActive: boolean; startTime: number; endTime: number }) => {
+    if (!session.isActive) return "DITUTUP";
+    const now = Math.floor(Date.now() / 1000);
+    if (now < session.startTime) return "BELUM MULAI";
+    if (now > session.endTime) return "BERAKHIR";
+    return "AKTIF";
+};
+
+export const getAdminSessionStatusColor = (status: string) => {
+    switch (status) {
+        case "AKTIF":
+            return "bg-green-500/20 text-green-400";
+        case "BELUM MULAI":
+            return "bg-amber-500/20 text-amber-400";
+        case "BERAKHIR":
+            return "bg-blue-500/20 text-blue-400";
+        case "DITUTUP":
+        default:
+            return "bg-red-500/20 text-red-400";
+    }
+};

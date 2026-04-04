@@ -1,7 +1,7 @@
 "use client";
 
 import type { Session, SessionStats } from "./types";
-import { formatTime } from "./adminFormat";
+import { formatTime, getAdminSessionStatus, getAdminSessionStatusColor } from "./adminFormat";
 import { StatCard } from "./StatCard";
 import { ParticipationMeter } from "./ParticipationMeter";
 
@@ -56,12 +56,10 @@ export function MonitorSessionsTab({
                                     <td className="p-3">
                                         <span
                                             className={`px-2 py-1 rounded text-xs font-bold whitespace-nowrap ${
-                                                session.isActive
-                                                    ? "bg-green-500/20 text-green-400"
-                                                    : "bg-red-500/20 text-red-400"
+                                                getAdminSessionStatusColor(getAdminSessionStatus(session))
                                             }`}
                                         >
-                                            {session.isActive ? "AKTIF" : "SELESAI"}
+                                            {getAdminSessionStatus(session)}
                                         </span>
                                     </td>
                                     <td className="p-3 text-xs text-gray-400 whitespace-nowrap">
@@ -116,12 +114,10 @@ export function MonitorSessionsTab({
                                 </div>
                                 <span
                                     className={`flex-shrink-0 px-2 py-1 rounded text-xs font-bold ${
-                                        session.isActive
-                                            ? "bg-green-500/20 text-green-400"
-                                            : "bg-red-500/20 text-red-400"
+                                        getAdminSessionStatusColor(getAdminSessionStatus(session))
                                     }`}
                                 >
-                                    {session.isActive ? "AKTIF" : "SELESAI"}
+                                    {getAdminSessionStatus(session)}
                                 </span>
                             </div>
                             <div className="text-xs text-gray-400 space-y-0.5 mb-3">
