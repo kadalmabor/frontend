@@ -4,8 +4,8 @@ import React, { useState, useEffect } from "react";
 import { useWallet } from "../../context/WalletContext";
 import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
-import { getValidToken, clearAuth, isMockToken, refreshAccessToken, isTokenExpired, authenticatedFetch } from "../../utils/auth";
-import { getApiBaseUrl } from "../../utils/api";
+import { clearAuth, isMockToken } from "../../utils/auth";
+import { authApiFetch } from "../../utils/api";
 
 export default function BindWallet() {
     const { account, isConnected, connectWallet, walletBlocked, walletBlockedMessage, isConnecting } = useWallet();
@@ -47,10 +47,7 @@ export default function BindWallet() {
 
     const checkStatus = async () => {
         try {
-            // authenticatedFetch handles token expiry + auto-refresh automatically
-            const res = await authenticatedFetch(
-                `${getApiBaseUrl()}/api/did/status/${account}`
-            );
+            const res = await authApiFetch(`/api/did/status/${account}`);
             if (res.status === 401) {
                 // Refresh juga gagal — perlu login ulang
                 clearAuth();
@@ -95,7 +92,7 @@ export default function BindWallet() {
                 setVc(null);
             }
         } catch (error: any) {
-            // authenticatedFetch melempar error ketika token + refresh keduanya gagal
+            // authApiFetch melempar error ketika token + refresh keduanya gagal
             if (
                 error?.message?.includes("Tidak ada token autentikasi yang valid") ||
                 error?.message?.includes("Autentikasi gagal")
@@ -122,33 +119,12 @@ export default function BindWallet() {
         setStatus("Menautkan wallet...");
 
         try {
-            // Import auth utilities
-            const { getValidToken, refreshAccessToken, isTokenExpired } = await import("../../utils/auth");
-
-            // Try to get valid token
-            let token = getValidToken();
-
-            // Check if token is expired or about to expire, refresh if needed
-            if (!token || isTokenExpired(token)) {
-                setStatus("Memperbarui sesi...");
-                token = await refreshAccessToken();
-            }
-
-            if (!token) {
-                setStatus("Kesalahan: Silakan login kembali. Sesi Anda sudah berakhir.");
-                setTimeout(() => {
-                    router.push("/login");
-                }, 2000);
-                return;
-            }
-
-            const res = await fetch(`${getApiBaseUrl()}/api/did/bind`, {
+            const res = await authApiFetch("/api/did/bind", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
                 },
-                body: JSON.stringify({ studentId, userAddress: account })
+                body: JSON.stringify({ studentId, userAddress: account }),
             });
 
             if (!res.ok) {
@@ -177,7 +153,17 @@ export default function BindWallet() {
             setAlreadyBound(true);
             setStatus("Berhasil! Wallet tertaut ke akun mahasiswa.");
         } catch (err: any) {
-            setStatus("Kesalahan: " + err.message);
+            const msg = err?.message || "Gagal menautkan wallet";
+            if (
+                msg.includes("Tidak ada token autentikasi yang valid") ||
+                msg.includes("Autentikasi gagal")
+            ) {
+                setStatus("Kesalahan: Silakan login kembali. Sesi Anda sudah berakhir.");
+                clearAuth();
+                setTimeout(() => router.push("/login"), 2000);
+                return;
+            }
+            setStatus("Kesalahan: " + msg);
             console.error("Kesalahan saat menautkan wallet:", err);
         }
     };
@@ -187,92 +173,29 @@ export default function BindWallet() {
         setStatus("Memverifikasi & menerbitkan Student NFT...");
 
         try {
-            // Try to get valid token
-            let token = getValidToken();
-
-            // Check if token is expired or about to expire, refresh if needed
-            if (!token || isTokenExpired(token)) {
-                setStatus("Memperbarui sesi...");
-                token = await refreshAccessToken();
-            }
-
-            if (!token) {
-                setStatus("Kesalahan: Silakan login kembali. Sesi Anda sudah berakhir.");
-                setTimeout(() => {
-                    router.push("/login");
-                }, 2000);
-                return;
-            }
-
-            // Use vcJwt instead of vc + signature
             if (!vc.vcJwt) {
                 throw new Error("JWT Verifiable Credential tidak ditemukan. Silakan tautkan wallet lagi.");
             }
 
-            const res = await fetch(`${getApiBaseUrl()}/api/did/verify-and-register`, {
+            const res = await authApiFetch("/api/did/verify-and-register", {
                 method: "POST",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     userAddress: account,
-                    vcJwt: vc.vcJwt
-                })
+                    vcJwt: vc.vcJwt,
+                }),
             });
 
             if (!res.ok) {
-                let errorData;
+                let errorData: { error?: string };
                 try {
                     errorData = await res.json();
                 } catch {
                     errorData = { error: `HTTP ${res.status} error` };
                 }
-
-                console.error('Register election error:', errorData, 'Status:', res.status);
-
-                // If 401, try to refresh token once more
-                if (res.status === 401) {
-                    setStatus("Sesi berakhir. Mencoba memperbarui...");
-                    const newToken = await refreshAccessToken();
-
-                    if (newToken) {
-                        // Retry request with new token
-                        setStatus("Mencoba ulang dengan token terbaru...");
-                        const retryRes = await fetch(`${getApiBaseUrl()}/api/did/verify-and-register`, {
-                            method: "POST",
-                            headers: {
-                                "Content-Type": "application/json",
-                                "Authorization": `Bearer ${newToken}`
-                            },
-                            body: JSON.stringify({
-                                userAddress: account,
-                                vcJwt: vc.vcJwt
-                            })
-                        });
-
-                        if (retryRes.ok) {
-                            const retryData = await retryRes.json();
-                            if (retryData.success) {
-                                setTxHash(retryData.txHash || null);
-                                setStatus("Berhasil! Student NFT berhasil diklaim.");
-                                setTimeout(() => {
-                                    router.push('/vote');
-                                }, 2000);
-                                return;
-                            }
-                        }
-                    }
-
-                    // If refresh failed, clear auth and redirect
-                    clearAuth();
-                    setStatus("Kesalahan: Sesi berakhir. Silakan login kembali.");
-                    setTimeout(() => {
-                        router.push("/login");
-                    }, 2000);
-                    return;
-                }
-
+                console.error("Register election error:", errorData, "Status:", res.status);
                 throw new Error(errorData.error || `HTTP error! status: ${res.status}`);
             }
 
@@ -287,7 +210,17 @@ export default function BindWallet() {
             setVc(null);
             setTimeout(() => router.push("/vote"), 4000);
         } catch (err: any) {
-            setStatus("Kesalahan: " + err.message);
+            const msg = err?.message || "Gagal mendaftar";
+            if (
+                msg.includes("Tidak ada token autentikasi yang valid") ||
+                msg.includes("Autentikasi gagal")
+            ) {
+                clearAuth();
+                setStatus("Kesalahan: Sesi berakhir. Silakan login kembali.");
+                setTimeout(() => router.push("/login"), 2000);
+                return;
+            }
+            setStatus("Kesalahan: " + msg);
             console.error("Kesalahan pendaftaran:", err);
         }
     };

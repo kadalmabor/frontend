@@ -6,7 +6,7 @@ import { useWallet } from "../../context/WalletContext";
 import { ethers } from "ethers";
 import VotingArtifact from "../../contracts/VotingSystem.json";
 import Link from "next/link";
-import { getApiBaseUrl } from "../../utils/api";
+import { authApiFetch } from "../../utils/api";
 
 export default function ProfilePage() {
     const [username, setUsername] = useState<string | null>(null);
@@ -84,19 +84,15 @@ export default function ProfilePage() {
 
         setIsChangingPassword(true);
         try {
-            const token = localStorage.getItem("token");
-            const apiUrl = getApiBaseUrl();
-
-            const response = await fetch(`${apiUrl}/api/auth/change-password`, {
+            const response = await authApiFetch("/api/auth/change-password", {
                 method: "PUT",
                 headers: {
                     "Content-Type": "application/json",
-                    "Authorization": `Bearer ${token}`
                 },
                 body: JSON.stringify({
                     currentPassword,
-                    newPassword
-                })
+                    newPassword,
+                }),
             });
 
             const data = await response.json();

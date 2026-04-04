@@ -4,21 +4,20 @@ import { useState } from "react";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
 import toast from "react-hot-toast";
-import { getApiBaseUrl } from "../../utils/api";
+import { getApiBaseUrl, publicApiFetch } from "../../utils/api";
 
 export default function LoginPage() {
     const [username, setUsername] = useState("");
     const [password, setPassword] = useState("");
     const [loading, setLoading] = useState(false);
     const router = useRouter();
-    const apiBaseUrl = getApiBaseUrl();
 
     const handleLogin = async (e: React.FormEvent) => {
         e.preventDefault();
         setLoading(true);
 
         try {
-            const res = await fetch(`${apiBaseUrl}/api/auth/login`, {
+            const res = await publicApiFetch("/api/auth/login", {
                 method: "POST",
                 headers: { "Content-Type": "application/json" },
                 body: JSON.stringify({ username, password }),
@@ -50,7 +49,7 @@ export default function LoginPage() {
         } catch (err: any) {
             console.error(err);
             if (err instanceof TypeError) {
-                toast.error(`Tidak bisa terhubung ke server (${apiBaseUrl}). Pastikan backend aktif.`);
+                toast.error(`Tidak bisa terhubung ke server (${getApiBaseUrl()}). Pastikan backend aktif.`);
             } else {
                 toast.error(err?.message || "Terjadi kesalahan saat login");
             }

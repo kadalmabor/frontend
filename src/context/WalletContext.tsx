@@ -4,7 +4,7 @@ import React, { createContext, useContext, useState, useEffect, ReactNode, useCa
 import { ethers, BrowserProvider } from "ethers";
 import toast from "react-hot-toast";
 import { getRpcErrorMessage } from "../utils/rpcError";
-import { getApiBaseUrl } from "../utils/api";
+import { authApiFetch } from "../utils/api";
 
 interface WalletContextType {
     account: string | null;
@@ -96,11 +96,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         }
 
         try {
-            const apiUrl = getApiBaseUrl();
-
-            const res = await fetch(`${apiUrl}/api/did/status/${address}`, {
-                headers: { Authorization: `Bearer ${token}` },
-            });
+            const res = await authApiFetch(`/api/did/status/${address}`);
             if (!res.ok) {
                 // Backend deliberately returns 403 when a non-admin tries to check an address
                 // bound to another studentId. Treat it as "wallet already used".
