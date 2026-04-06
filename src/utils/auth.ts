@@ -43,40 +43,60 @@ export const getValidToken = (): string | null => {
     return token;
 };
 
+let refreshInFlight: Promise<string | null> | null = null;
+
 export const refreshAccessToken = async (): Promise<string | null> => {
-    const refreshToken = localStorage.getItem("refreshToken");
-
-    if (!refreshToken) {
-        return null;
+    if (refreshInFlight) {
+        return refreshInFlight;
     }
 
-    try {
-        const base = getApiBaseUrl();
-        const res = await fetch(`${base.replace(/\/$/, "")}/api/auth/refresh`, {
-            method: "POST",
-            headers: {
-                "Content-Type": "application/json",
-            },
-            body: JSON.stringify({ refreshToken }),
-        });
+    refreshInFlight = (async (): Promise<string | null> => {
+        const refreshToken = localStorage.getItem("refreshToken");
 
-        if (!res.ok) {
-            throw new Error("Gagal memperbarui token");
+        if (!refreshToken) {
+            return null;
         }
 
-        const data = await res.json();
+        try {
+            const base = getApiBaseUrl();
+            const res = await fetch(`${base.replace(/\/$/, "")}/api/auth/refresh`, {
+                method: "POST",
+                headers: {
+                    "Content-Type": "application/json",
+                },
+                body: JSON.stringify({ refreshToken }),
+            });
 
-        if (data.success && data.token) {
-            localStorage.setItem("token", data.token);
-            return data.token;
+            if (res.status === 401) {
+                clearAuth();
+                return null;
+            }
+
+            if (!res.ok) {
+                throw new Error("Gagal memperbarui token");
+            }
+
+            const data = await res.json();
+
+            if (data.success && data.token) {
+                localStorage.setItem("token", data.token);
+                return data.token;
+            }
+
+            return null;
+        } catch (error) {
+            console.error("Gagal memperbarui token:", error);
+            if (error instanceof TypeError) {
+                return null;
+            }
+            clearAuth();
+            return null;
+        } finally {
+            refreshInFlight = null;
         }
+    })();
 
-        return null;
-    } catch (error) {
-        console.error("Gagal memperbarui token:", error);
-        clearAuth();
-        return null;
-    }
+    return refreshInFlight;
 };
 
 export const isTokenExpired = (token: string | null): boolean => {

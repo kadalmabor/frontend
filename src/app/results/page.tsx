@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState, useCallback } from "react";
+import React, { useEffect, useState, useCallback, useRef } from "react";
 import { ethers } from "ethers";
 import toast from "react-hot-toast";
 import { useWallet } from "../../context/WalletContext";
@@ -187,6 +187,7 @@ export default function ResultsPage() {
     const [loading, setLoading] = useState(false);
     const [refreshKey, setRefreshKey] = useState(0);
     const [activeTab, setActiveTab] = useState<"chart" | "ranking">("ranking");
+    const fetchResultsSeq = useRef(0);
 
     // Refetch when tab becomes visible
     useEffect(() => {
@@ -234,8 +235,8 @@ export default function ResultsPage() {
     const fetchResults = useCallback(async () => {
         if (selectedSessionId === null) return;
 
-        if (candidates.length === 0) setLoading(true);
-
+        setLoading(true);
+        const seq = ++fetchResultsSeq.current;
         const readProvider =
             provider ||
             new ethers.JsonRpcProvider(process.env.NEXT_PUBLIC_RPC_URL);
@@ -248,6 +249,7 @@ export default function ResultsPage() {
             );
 
             const data = await contract.getCandidates(selectedSessionId);
+            if (seq !== fetchResultsSeq.current) return;
             let totalVotes = 0;
             const loadedCandidates: Candidate[] = data.map((c: any) => {
                 const votes = Number(c.voteCount);
@@ -270,12 +272,16 @@ export default function ResultsPage() {
                         : ((c.voteCount / totalVotes) * 100).toFixed(1),
             }));
             candidatesWithStats.sort((a, b) => b.voteCount - a.voteCount);
+            if (seq !== fetchResultsSeq.current) return;
             setCandidates(candidatesWithStats);
         } catch (err) {
+            if (seq !== fetchResultsSeq.current) return;
             console.error("Error fetching results:", err);
             toast.error(getRpcErrorMessage(err));
         } finally {
-            setLoading(false);
+            if (seq === fetchResultsSeq.current) {
+                setLoading(false);
+            }
         }
     }, [selectedSessionId, provider]);
 
@@ -286,52 +292,51 @@ export default function ResultsPage() {
 
     // ── Real-time updates via Socket.io ────────────────────────────────────
     useEffect(() => {
-        const socket = io(getApiBaseUrl());
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const socket = io(getApiBaseUrl(), {
+            auth: token ? { token } : {},
+        });
+
+        const join = () => {
+            if (selectedSessionId != null) {
+                socket.emit("join_session", selectedSessionId);
+            }
+        };
 
         socket.on("connect", () => {
             console.log("🟢 Connected to Real-time Voting Updates");
+            join();
+        });
+        socket.on("connect_error", (err) => {
+            console.error("Socket results connect error:", err);
+        });
+        socket.on("error", (err) => {
+            console.error("Socket results error:", err);
         });
 
         socket.on("vote_update", (data: any) => {
-            if (Number(data.sessionId) === selectedSessionId) {
-                console.log("🚀 New vote received, updating results...");
-                setCandidates((prev) => {
-                    const candidateId = Number(data.candidateId);
-                    const newCandidates = prev.map(c =>
-                        c.id === candidateId ? { ...c, voteCount: c.voteCount + 1 } : c
-                    );
-                    const totalVotes = newCandidates.reduce((sum, c) => sum + c.voteCount, 0);
-                    const updatedCandidates = newCandidates.map(c => ({
-                        ...c,
-                        percentage: totalVotes === 0 ? "0.0" : ((c.voteCount / totalVotes) * 100).toFixed(1)
-                    }));
-                    updatedCandidates.sort((a, b) => b.voteCount - a.voteCount);
-                    return updatedCandidates;
-                });
-
-                // Fetch dari blockchain dengan sedikit delay (memberi waktu RPC node sync)
-                setTimeout(() => {
-                    setRefreshKey((prev) => prev + 1);
-                }, 2000);
-            }
+            if (selectedSessionId != null && Number(data.sessionId) !== selectedSessionId) return;
+            setTimeout(() => {
+                setRefreshKey((prev) => prev + 1);
+            }, 1500);
         });
 
         socket.on("session_update", (data: any) => {
-            if (Number(data.sessionId) === selectedSessionId) {
-                setRefreshKey((prev) => prev + 1);
-            }
+            if (selectedSessionId != null && Number(data.sessionId) !== selectedSessionId) return;
+            setRefreshKey((prev) => prev + 1);
         });
 
         socket.on("candidate_added", (data: any) => {
-            if (Number(data.sessionId) === selectedSessionId) {
-                fetchResults();
-            }
+            if (selectedSessionId != null && Number(data.sessionId) !== selectedSessionId) return;
+            fetchResults();
         });
 
         socket.on("session_created", () => {
             console.log("🚀 Sesi baru dibuat, menyegarkan daftar sesi...");
             setRefreshKey((prev) => prev + 1);
         });
+
+        if (socket.connected) join();
 
         return () => {
             socket.disconnect();

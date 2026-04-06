@@ -6,9 +6,11 @@ import { useRouter } from "next/navigation";
 import toast from "react-hot-toast";
 import { clearAuth, isMockToken } from "../../utils/auth";
 import { authApiFetch } from "../../utils/api";
+import { getBlockExplorerTxUrl } from "../../utils/explorer";
 
 export default function BindWallet() {
-    const { account, isConnected, connectWallet, walletBlocked, walletBlockedMessage, isConnecting } = useWallet();
+    const { account, isConnected, connectWallet, walletBlocked, walletBlockedMessage, isConnecting, provider } = useWallet();
+    const [chainId, setChainId] = useState<bigint | null>(null);
     const [studentId, setStudentId] = useState<string | null>(null);
     const [status, setStatus] = useState("");
     const [vc, setVc] = useState<any>(null);
@@ -19,12 +21,28 @@ export default function BindWallet() {
     const router = useRouter();
 
     useEffect(() => {
+        if (!provider) {
+            setChainId(null);
+            return;
+        }
+        provider.getNetwork().then((n) => setChainId(n.chainId)).catch(() => setChainId(null));
+    }, [provider]);
+
+    useEffect(() => {
         // Get user info from localStorage
         const storedStudentId = localStorage.getItem("username");
         const token = localStorage.getItem("token");
+        const role = localStorage.getItem("role");
 
         if (!token || !storedStudentId) {
             router.push("/login");
+            return;
+        }
+
+        // Admin accounts are not student identities — block DID student flow.
+        if (role === "admin") {
+            toast.error("Akun admin tidak dapat menautkan wallet sebagai mahasiswa.");
+            router.push("/admin");
             return;
         }
 
@@ -280,7 +298,7 @@ export default function BindWallet() {
                                     <div className="text-xs bg-black/40 p-2 rounded-lg border border-purple-500/20 font-mono flex flex-col items-center gap-1.5">
                                         <span className="text-purple-300">Hash Transaksi:</span>
                                         <a
-                                            href={`${process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL}/tx/${txHash}`}
+                                            href={getBlockExplorerTxUrl(txHash, chainId)}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="text-blue-400 hover:text-blue-300 underline break-all inline-block px-1"

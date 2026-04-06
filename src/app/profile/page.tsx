@@ -7,6 +7,7 @@ import { ethers } from "ethers";
 import VotingArtifact from "../../contracts/VotingSystem.json";
 import Link from "next/link";
 import { authApiFetch } from "../../utils/api";
+import { getValidToken, isTokenExpired } from "../../utils/auth";
 
 export default function ProfilePage() {
     const [username, setUsername] = useState<string | null>(null);
@@ -23,18 +24,18 @@ export default function ProfilePage() {
     const router = useRouter();
 
     useEffect(() => {
-        const token = localStorage.getItem("token");
+        const token = getValidToken();
         const storedUsername = localStorage.getItem("username");
         const storedRole = localStorage.getItem("role");
 
-        if (!token || !storedUsername) {
+        if (!token || !storedUsername || isTokenExpired(token)) {
             router.push("/login");
             return;
         }
 
         setUsername(storedUsername);
         setRole(storedRole);
-    }, []);
+    }, [router]);
 
     // Cek kepemilikan NFT
     useEffect(() => {

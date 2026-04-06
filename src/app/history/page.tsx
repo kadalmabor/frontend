@@ -6,6 +6,7 @@ import toast from "react-hot-toast";
 import { useWallet } from "../../context/WalletContext";
 import VotingArtifact from "../../contracts/VotingSystem.json";
 import { getRpcErrorMessage } from "../../utils/rpcError";
+import { getBlockExplorerTxUrl } from "../../utils/explorer";
 
 
 interface VoteRecord {
@@ -23,6 +24,7 @@ export default function HistoryPage() {
     const [history, setHistory] = useState<VoteRecord[]>([]);
     const [loading, setLoading] = useState(false);
     const [loadingTx, setLoadingTx] = useState(false);
+    const [chainId, setChainId] = useState<bigint | null>(null);
 
     const fetchHistory = async () => {
         if (!provider || !account) return;
@@ -70,7 +72,10 @@ export default function HistoryPage() {
                     const chunk = await contract.queryFilter(filter, from, to);
                     chunk.forEach((event: any) => {
                         if (event.args?.sessionId !== undefined) {
-                            txHashMap[Number(event.args.sessionId)] = event.transactionHash;
+                            const sid = Number(event.args.sessionId);
+                            if (txHashMap[sid] === undefined) {
+                                txHashMap[sid] = event.transactionHash;
+                            }
                         }
                     });
                 }
@@ -95,6 +100,14 @@ export default function HistoryPage() {
     useEffect(() => {
         if (isConnected) fetchHistory();
     }, [isConnected, provider, account]);
+
+    useEffect(() => {
+        if (!provider) {
+            setChainId(null);
+            return;
+        }
+        provider.getNetwork().then((n) => setChainId(n.chainId)).catch(() => setChainId(null));
+    }, [provider]);
 
     // Refetch when user returns to tab so history updates without reload
     useEffect(() => {
@@ -163,7 +176,7 @@ export default function HistoryPage() {
                                                 <td className="px-5 py-4">
                                                     {record.txHash ? (
                                                         <a
-                                                            href={`${process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL}/tx/${record.txHash}`}
+                                                            href={getBlockExplorerTxUrl(record.txHash, chainId)}
                                                             target="_blank"
                                                             rel="noopener noreferrer"
                                                             className="text-blue-400 hover:text-blue-300 text-sm font-mono"
@@ -219,7 +232,7 @@ export default function HistoryPage() {
                                             <div className="flex items-center gap-2">
                                                 <span className="text-gray-400 text-xs">Tx:</span>
                                                 <a
-                                                    href={`${process.env.NEXT_PUBLIC_BLOCK_EXPLORER_URL || "https://amoy.polygonscan.com"}/tx/${record.txHash}`}
+                                                    href={getBlockExplorerTxUrl(record.txHash, chainId)}
                                                     target="_blank"
                                                     rel="noopener noreferrer"
                                                     className="text-blue-400 hover:text-blue-300 text-xs font-mono underline underline-offset-2"

@@ -31,9 +31,9 @@ const Navbar = () => {
         { href: "/", label: "Beranda" },
         // { href: "/about", label: "About" },
         ...(isAdmin ? [{ href: "/admin", label: "Dasbor Admin", className: "text-purple-300 hover:text-purple-400" }] : []),
-        { href: "/bind-wallet", label: "Tautkan Wallet" },
+        ...(!isAdmin ? [{ href: "/bind-wallet", label: "Tautkan Wallet" }] : []),
         { href: "/vote", label: "Voting" },
-        { href: "/history", label: "Riwayat" },
+        ...(!isAdmin ? [{ href: "/history", label: "Riwayat Voting" }] : []),
         { href: "/results", label: "Hasil" },
     ];
 

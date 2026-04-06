@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useEffect, useState } from "react";
+import React, { useEffect, useState, useRef } from "react";
 import Link from "next/link";
 import { ethers } from "ethers";
 import toast from "react-hot-toast";
@@ -47,6 +47,7 @@ export default function VotePage() {
     const [chainId, setChainId] = useState<bigint | null>(null);
     const [hasNft, setHasNft] = useState<boolean | null>(null);
     const [refreshKey, setRefreshKey] = useState(0); // Trigger re-fetch
+    const fetchSessionSeq = useRef(0);
 
     const getVotingContract = (runner: ethers.ContractRunner) => {
         return new ethers.Contract(
@@ -89,6 +90,7 @@ export default function VotePage() {
     // Fetch details when a session is selected
     const fetchSessionDetails = async (sessionId: number) => {
         if (!provider || !account) return;
+        const seq = ++fetchSessionSeq.current;
         setLoading(true);
         setIsEligibleForSession(null);
         try {
@@ -97,6 +99,8 @@ export default function VotePage() {
 
             // Fetch Candidates for this session
             const candidatesRaw = await contract.getCandidates(sessionId);
+            if (seq !== fetchSessionSeq.current) return;
+
             const loadedCandidates = candidatesRaw.map((c: any) => ({
                 id: Number(c.id),
                 name: c.name,
@@ -109,26 +113,35 @@ export default function VotePage() {
 
             // Check if user voted in this session
             const hasVoted = await contract.hasVotedInSession(sessionId, account);
+            if (seq !== fetchSessionSeq.current) return;
             setHasVotedInSession(hasVoted);
 
             // Check if user has Student NFT (eligible to vote)
             const balance = await contract.balanceOf(account);
+            if (seq !== fetchSessionSeq.current) return;
             setHasNft(Number(balance) > 0);
 
             try {
                 const sessionEligible = await contract.isEligibleForSession(sessionId, account);
+                if (seq !== fetchSessionSeq.current) return;
                 setIsEligibleForSession(sessionEligible);
             } catch (eligibilityErr) {
                 console.warn("isEligibleForSession not available, fallback to open access:", eligibilityErr);
-                setIsEligibleForSession(true);
+                if (seq === fetchSessionSeq.current) {
+                    setIsEligibleForSession(true);
+                }
             }
         } catch (err) {
+            if (seq !== fetchSessionSeq.current) return;
             console.error(err);
             setHasNft(null);
             setIsEligibleForSession(null);
             toast.error(getRpcErrorMessage(err));
+        } finally {
+            if (seq === fetchSessionSeq.current) {
+                setLoading(false);
+            }
         }
-        setLoading(false);
     };
 
     useEffect(() => {
@@ -155,51 +168,54 @@ export default function VotePage() {
     // REAL-TIME UPDATES VIA SOCKET.IO
     // ---------------------------------------------------------
     useEffect(() => {
-        const socket = io(getApiBaseUrl());
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const socket = io(getApiBaseUrl(), {
+            auth: token ? { token } : {},
+        });
+
+        const join = () => {
+            if (selectedSessionId != null) {
+                socket.emit("join_session", selectedSessionId);
+            }
+        };
 
         socket.on("connect", () => {
             console.log("🟢 Terhubung ke pembaruan voting real-time");
+            join();
+        });
+        socket.on("connect_error", (err) => {
+            console.error("Socket vote connect error:", err);
+        });
+        socket.on("error", (err) => {
+            console.error("Socket vote error:", err);
         });
 
-        // Listen for new votes (check if WE voted from another device/tab)
         socket.on("vote_update", (data: any) => {
-            // If current user is the voter, update local state
-            if (account && data.voter.toLowerCase() === account.toLowerCase()) {
-                console.log("Voting terdeteksi dari sumber lain, memperbarui tampilan...");
-                if (Number(data.sessionId) === selectedSessionId) {
-                    setHasVotedInSession(true);
-                }
-            }
+            if (selectedSessionId != null && Number(data.sessionId) !== selectedSessionId) return;
+            setRefreshKey((prev) => prev + 1);
         });
 
-        // Listen for session status changes
         socket.on("session_update", (data: any) => {
+            if (selectedSessionId != null && Number(data.sessionId) !== selectedSessionId) return;
             console.log("🔄 Status sesi berubah, menyegarkan...");
-            setRefreshKey(prev => prev + 1);
-            // If we are viewing this session, force update visual state immediately if needed
-            // But fetchSessionDetails triggered by refreshKey will handle it cleanly
+            setRefreshKey((prev) => prev + 1);
         });
 
-        // Listen for new candidates
         socket.on("candidate_added", (data: any) => {
             console.log("🆕 Kandidat baru ditambahkan, menyegarkan...");
-            // If looking at the session where candidate was added, refresh
-            if (Number(data.sessionId) === selectedSessionId) {
-                // Beri jeda 2 detik agar Node RPC (seperti Sepolia/Amoy) tersinkronisasi
-                // terutama saat kandidat berubah dari kosong (0) ke 1 kandidat pertama.
-                setTimeout(() => {
-                    setRefreshKey(prev => prev + 1);
-                }, 2000);
-            }
+            if (selectedSessionId != null && Number(data.sessionId) !== selectedSessionId) return;
+            setTimeout(() => {
+                setRefreshKey((prev) => prev + 1);
+            }, 2000);
         });
 
-        // Listen for new sessions
         socket.on("session_created", () => {
             console.log("🆕 Sesi baru dibuat, menyegarkan daftar...");
-            setRefreshKey(prev => prev + 1);
+            setRefreshKey((prev) => prev + 1);
         });
 
-        // Cleanup on unmount
+        if (socket.connected) join();
+
         return () => {
             socket.disconnect();
         };
@@ -335,6 +351,7 @@ export default function VotePage() {
 
     // View: Single Session (Candidates)
     const currentSession = sessions.find(s => s.id === selectedSessionId);
+    const currentSessionStatus = currentSession ? getSessionStatus(currentSession) : "Closed";
 
     return (
         <div className="min-h-screen bg-dark-900 pt-20 px-4">
@@ -396,16 +413,17 @@ export default function VotePage() {
                     <div className="text-center p-6 bg-rose-500/10 border border-rose-500/50 rounded-xl mb-8">
                         <p className="text-rose-300 font-bold">Anda tidak termasuk daftar pemilih sesi ini.</p>
                     </div>
-                ) : getSessionStatus(currentSession!) !== 'Active' ? (
+                ) : currentSessionStatus !== "Active" ? (
                     <div className="text-center p-6 bg-yellow-500/10 border border-yellow-500/50 rounded-xl mb-8">
                         <p className="text-yellow-300 font-bold">
-                            Status sesi: {getSessionStatus(currentSession!) === "Active"
-                                ? "Aktif"
-                                : getSessionStatus(currentSession!) === "Upcoming"
-                                    ? "Akan Datang"
-                                    : getSessionStatus(currentSession!) === "Ended"
-                                        ? "Berakhir"
-                                        : "Ditutup"}
+                            Status sesi:{" "}
+                            {currentSessionStatus === "Upcoming"
+                                ? "Akan Datang"
+                                : currentSessionStatus === "Ended"
+                                    ? "Berakhir"
+                                    : currentSessionStatus === "Closed"
+                                        ? "Ditutup"
+                                        : "Tidak aktif"}
                         </p>
                     </div>
                 ) : (
@@ -439,8 +457,8 @@ export default function VotePage() {
                             <div className="mt-auto w-full">
                                 <button
                                     onClick={() => castVote(c.id)}
-                                    disabled={hasVotedInSession || getSessionStatus(currentSession!) !== "Active" || loading || hasNft === false || isEligibleForSession === false}
-                                    className={`w-full py-2.5 rounded-lg font-semibold transition text-sm ${hasVotedInSession || getSessionStatus(currentSession!) !== "Active" || hasNft === false || isEligibleForSession === false
+                                    disabled={hasVotedInSession || currentSessionStatus !== "Active" || loading || hasNft === false || isEligibleForSession === false}
+                                    className={`w-full py-2.5 rounded-lg font-semibold transition text-sm ${hasVotedInSession || currentSessionStatus !== "Active" || hasNft === false || isEligibleForSession === false
                                         ? "bg-gray-700 text-gray-400 cursor-not-allowed"
                                         : "bg-blue-600 hover:bg-blue-500 text-white shadow-lg shadow-blue-500/25"
                                         }`}

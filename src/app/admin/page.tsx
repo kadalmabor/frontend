@@ -71,11 +71,41 @@ export default function AdminPage() {
         loading: false,
     });
 
+    const [adminGate, setAdminGate] = useState<"pending" | "ok" | "fail">("pending");
+
     useEffect(() => {
-        const role = localStorage.getItem("role");
-        if (role !== "admin") {
-            router.push("/");
-        }
+        let cancelled = false;
+        (async () => {
+            try {
+                const role = localStorage.getItem("role");
+                if (role !== "admin") {
+                    if (!cancelled) {
+                        setAdminGate("fail");
+                        router.push("/");
+                    }
+                    return;
+                }
+
+                const res = await authApiFetch("/api/auth/me", { method: "GET" });
+                const data = await res.json().catch(() => ({}));
+                if (cancelled) return;
+                if (!res.ok || !data.success || data.role !== "admin") {
+                    setAdminGate("fail");
+                    router.push("/login");
+                    return;
+                }
+                setAdminGate("ok");
+            } catch (err) {
+                console.error("Admin gate check failed:", err);
+                if (!cancelled) {
+                    setAdminGate("fail");
+                    router.push("/login");
+                }
+            }
+        })();
+        return () => {
+            cancelled = true;
+        };
     }, [router]);
 
     useEffect(() => {
@@ -91,16 +121,27 @@ export default function AdminPage() {
     }, [provider]);
 
     useEffect(() => {
-        const socket = io(getApiBaseUrl());
+        if (adminGate !== "ok") return;
+        const token = typeof window !== "undefined" ? localStorage.getItem("token") : null;
+        const socket = io(getApiBaseUrl(), {
+            auth: token ? { token } : {},
+        });
         socket.on("connect", () => {
             console.log("🟢 Admin terhubung ke pembaruan real-time");
+            socket.emit("join_admin");
+        });
+        socket.on("connect_error", (err) => {
+            console.error("Socket admin connect error:", err);
+        });
+        socket.on("error", (err) => {
+            console.error("Socket admin error:", err);
         });
         socket.on("session_created", () => setRefreshKey((prev) => prev + 1));
         socket.on("session_update", () => setRefreshKey((prev) => prev + 1));
         return () => {
             socket.disconnect();
         };
-    }, []);
+    }, [adminGate]);
 
     const fetchStudentDirectory = async (keyword = "", silent = false) => {
         setStudentDirectoryLoading(true);
@@ -519,6 +560,17 @@ export default function AdminPage() {
 
         setBulkImportLoading(false);
     };
+
+    if (adminGate === "pending") {
+        return (
+            <div className="text-center pt-24 text-gray-400">
+                Memverifikasi akses admin...
+            </div>
+        );
+    }
+    if (adminGate === "fail") {
+        return null;
+    }
 
     if (!isConnected) return <div className="text-center pt-20">Silakan hubungkan wallet admin</div>;
 

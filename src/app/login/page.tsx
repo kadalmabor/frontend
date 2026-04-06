@@ -40,10 +40,10 @@ export default function LoginPage() {
                     router.push("/vote");
                 }
             } else {
-                const errorMessage =
-                    data.error ||
-                    (data.details && data.details.map((d: any) => d.msg).join(", ")) ||
-                    "Login gagal";
+                const detailsMsg = Array.isArray(data.details)
+                    ? data.details.map((d: any) => d.msg).join(", ")
+                    : "";
+                const errorMessage = data.error || detailsMsg || "Login gagal";
                 toast.error(errorMessage);
             }
         } catch (err: any) {

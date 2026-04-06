@@ -44,7 +44,6 @@ export interface BulkImportSummary {
     totalRows: number;
     created: number;
     failed: number;
-    defaultPassword?: string;
 }
 
 export type AdminTab = "monitor" | "manage" | "users";

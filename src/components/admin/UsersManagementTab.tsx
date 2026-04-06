@@ -113,10 +113,7 @@ export function UsersManagementTab({
                                 </p>
                             </div>
                             <p className="text-xs text-gray-400 mt-2">
-                                Password default:{" "}
-                                <span className="font-mono text-white">
-                                    {bulkImportSummary.defaultPassword || "password123"}
-                                </span>
+                                Password default untuk akun baru dikonfigurasi di server (tidak ditampilkan di sini).
                             </p>
                         </div>
                     )}

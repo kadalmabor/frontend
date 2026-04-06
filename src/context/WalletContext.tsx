@@ -5,6 +5,7 @@ import { ethers, BrowserProvider } from "ethers";
 import toast from "react-hot-toast";
 import { getRpcErrorMessage } from "../utils/rpcError";
 import { authApiFetch } from "../utils/api";
+import { getValidToken } from "../utils/auth";
 
 interface WalletContextType {
     account: string | null;
@@ -87,7 +88,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
         // Allow wallet connection but don't block.
         if (typeof window === "undefined") return true;
 
-        const token = localStorage.getItem("token");
+        const token = getValidToken();
         const currentStudentId = localStorage.getItem("username");
         if (!token || !currentStudentId) {
             setWalletBlocked(false);
@@ -149,7 +150,12 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
                 const accounts = await browserProvider.listAccounts();
                 if (accounts.length > 0) {
                     await checkNetwork(browserProvider);
-                    setAccount(accounts[0].address);
+                    const addr = accounts[0].address;
+                    const ok = await evaluateWalletOwnership(addr);
+                    setAccount(ok ? addr : null);
+                    if (!ok) {
+                        toast.error("Wallet tersebut sudah digunakan. Silakan ganti akun wallet.");
+                    }
                     return;
                 }
                 setAccount(null);
@@ -200,7 +206,7 @@ export const WalletProvider = ({ children }: { children: ReactNode }) => {
             injectedProvider.removeListener?.("accountsChanged", handleAccountsChanged);
             injectedProvider.removeListener?.("chainChanged", handleChainChanged);
         };
-    }, [checkNetwork]);
+    }, [checkNetwork, evaluateWalletOwnership]);
 
     const connectWallet = async () => {
         const injectedProvider = getInjectedProvider();
